@@ -7,6 +7,7 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
+  base: "/", 
   server: {
     headers: {
       "Cross-Origin-Embedder-Policy": "require-corp",

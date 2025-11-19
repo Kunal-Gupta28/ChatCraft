@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landingpage from "./pages/Landingpage";
 import Register from "./pages/Register";
-import SignIn from "./pages/Login";
+import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Project from "./pages/Project";
 import UserAuth from "./auth/UserAuth";
@@ -18,7 +18,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Landingpage />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<SignIn />} />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/home"
               element={
