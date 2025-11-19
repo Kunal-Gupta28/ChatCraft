@@ -17,8 +17,26 @@ app.use(
   })
 );
 
+// Routes
 app.use("/", userRouter);
 app.use("/project", projectRouter);
 app.use("/ai", aiRouter);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Error:", err.message);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
 module.exports = app;

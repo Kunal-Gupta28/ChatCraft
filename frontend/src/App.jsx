@@ -5,10 +5,11 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Project from "./pages/Project";
 import UserAuth from "./auth/UserAuth";
+import NotFound from "./components/NotFound";
 
 // context api
 import { UserProvider } from "./contexts/user.context";
-import { ProjectProvider} from "./contexts/project.context"
+import { ProjectProvider } from "./contexts/project.context";
 
 const App = () => {
   return (
@@ -36,6 +37,9 @@ const App = () => {
               }
             />
             <Route path="/logout" />
+
+            {/* 404 Page */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </ProjectProvider>
