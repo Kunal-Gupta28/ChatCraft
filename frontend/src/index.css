@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+
+.prose pre {
+  @apply bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto text-xs;
+}
+.prose code {
+  @apply font-mono;
+}
+
+body{
+  background-color: #030712;
+}
