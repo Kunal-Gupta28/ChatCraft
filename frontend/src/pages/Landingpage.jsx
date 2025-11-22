@@ -12,7 +12,7 @@ const Landingpage = () => {
   // Check if already visited in this tab
   const [loading, setLoading] = useState(() => {
     const isVisited = sessionStorage.getItem("isVisited");
-    return !isVisited;  // true for first visit in current tab
+    return !isVisited;
   });
 
   useEffect(() => {
