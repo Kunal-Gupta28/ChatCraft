@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check } from "lucide-react";
-import axiosInstance from "../config/axios";
-import {useUser} from '../contexts/user.context'
+import axiosInstance from "../../config/axios";
+import {useUser} from '../../contexts/user.context'
 
 const AvatarPicker = ({ open, onClose }) => {
+  
+  // context api
+  const {user, setUser} = useUser();
   const avatarOptions = [
     "/assets/1.png",
     "/assets/2.png",
@@ -20,8 +23,8 @@ const AvatarPicker = ({ open, onClose }) => {
     "/assets/12.png",
   ];
   const [selected, setSelected] = useState(null);
-  const {user, setUser} = useUser();
-  
+
+  // send selected image to backend and save its response in user context
   const handleSave = async () => {
     const res = await axiosInstance.post('/setAvatar', { avatar: selected, userId: user._id });
     if (res.status === 200) {
@@ -62,6 +65,7 @@ const AvatarPicker = ({ open, onClose }) => {
               <X size={24} />
             </button>
 
+            {/* heading  */}
             <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center text-white">
               Choose Your Profile Picture
             </h2>
