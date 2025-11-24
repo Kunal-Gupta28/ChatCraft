@@ -26,10 +26,10 @@ const AvatarPicker = ({ open, onClose }) => {
 
   // send selected image to backend and save its response in user context
   const handleSave = async () => {
-    const res = await axiosInstance.post('/setAvatar', { avatar: selected, userId: user._id });
+    const res = await axiosInstance.put('/setAvatar', { avatar: selected, userId: user._id });
     if (res.status === 200) {
-      await setUser(res.data.user);
-      await localStorage.setItem("user",JSON.stringify(res.data.user));
+       setUser(res.data.user);
+       localStorage.setItem("user",JSON.stringify(res.data.user));
       setSelected(null);
       onClose();
     }
@@ -56,7 +56,7 @@ const AvatarPicker = ({ open, onClose }) => {
             {/* Close Button */}
             <button
               aria-label="Close"
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition cursor-pointer"
               onClick={() => {
                 setSelected(null);
                 onClose();
@@ -105,10 +105,10 @@ const AvatarPicker = ({ open, onClose }) => {
             <button
               disabled={!selected}
               onClick={handleSave}
-              className={`w-full py-3 rounded-xl font-semibold transition 
+              className={`w-full py-3 rounded-xl font-semibold transition
                 ${
                   selected
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
                     : "bg-gray-700 text-gray-400 cursor-not-allowed"
                 }
               `}

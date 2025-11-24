@@ -79,7 +79,7 @@ const Home = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="min-h-screen bg-gray-950 text-white px-6 py-10 relative overflow-hidden"
+      className="min-h-screen bg-gray-950 text-white px-6 py-10 relative overflow-hidden select-none"
     >
       {/* background Blobs */}
       <BackgroundBlobs />

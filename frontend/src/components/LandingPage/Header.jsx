@@ -15,7 +15,7 @@ const Header = () => {
       {/* navigate to login page */}
       <button
         onClick={() => navigate("/login")}
-        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2 rounded-lg transition-all shadow-lg hover:shadow-blue-500/50"
+        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2 rounded-lg transition-all shadow-lg hover:shadow-blue-500/50 cursor-pointer"
       >
         Get Started
       </button>

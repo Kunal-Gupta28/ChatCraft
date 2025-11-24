@@ -30,7 +30,7 @@ const Landingpage = () => {
     <div
       className={`${
         loading ? "h-[100dvh]" : "min-h-screen"
-      } bg-gray-950 text-white overflow-x-hidden relative`}
+      } bg-gray-950 text-white overflow-x-hidden relative select-none`}
     >
       {loading && (
         <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-[9999]">

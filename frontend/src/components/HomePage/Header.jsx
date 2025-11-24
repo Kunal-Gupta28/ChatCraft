@@ -58,7 +58,7 @@ const Header = ({ setShowPopup, setShowAvatarPopup }) => {
         {/* new project button */}
         <button
           onClick={() => setShowPopup(true)}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:scale-105 transition"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:scale-105 transition cursor-pointer"
         >
           <Plus size={18} />
           New Project
@@ -67,7 +67,7 @@ const Header = ({ setShowPopup, setShowAvatarPopup }) => {
         {/* logout button */}
         <button
           onClick={handleLogout}
-          className="bg-gray-700 text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-600 flex items-center gap-2 transition"
+          className="bg-gray-700 text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-600 flex items-center gap-2 transition cursor-pointer"
         >
           <LogOut size={18} />
           Logout

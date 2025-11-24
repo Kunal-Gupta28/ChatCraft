@@ -30,7 +30,7 @@ const CTA = () => {
         <motion.button
           variants={itemVariants}
           onClick={() => navigate("/login")}
-          className="bg-white text-purple-700 hover:bg-gray-100 font-bold px-8 py-4 rounded-lg text-lg shadow-lg inline-flex items-center transition-transform hover:scale-105"
+          className="bg-white text-purple-700 hover:bg-gray-100 font-bold px-8 py-4 rounded-lg text-lg shadow-lg inline-flex items-center transition-transform hover:scale-105 cursor-pointer"
         >
           Get Started Free <ArrowRight className="ml-3 h-6 w-6" />
         </motion.button>

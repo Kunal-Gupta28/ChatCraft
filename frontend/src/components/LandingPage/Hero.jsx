@@ -30,7 +30,7 @@ const Hero = () => {
           <motion.button
             variants={itemVariants}
             onClick={() => navigate("/login")}
-            className="mt-10 bg-gradient-to-r from-blue-500 to-purple-600 hover:brightness-110 text-white font-semibold px-10 py-4 rounded-lg text-lg shadow-lg inline-flex items-center transition-transform hover:scale-105"
+            className="mt-10 bg-gradient-to-r from-blue-500 to-purple-600 hover:brightness-110 text-white font-semibold px-10 py-4 rounded-lg text-lg shadow-lg inline-flex items-center transition-transform hover:scale-105 cursor-pointer"
           >
             Start Crafting <ArrowRight className="ml-2 h-5 w-5" />
           </motion.button>

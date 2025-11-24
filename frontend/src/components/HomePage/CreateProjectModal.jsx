@@ -35,7 +35,7 @@ const CreateProjectModal = ({
             setProjectName("");
             setError(null);
           }}
-          className="absolute top-4 right-4 text-gray-500 hover:text-white transition"
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition cursor-pointer"
         >
           <X size={24} />
         </button>
@@ -65,7 +65,7 @@ const CreateProjectModal = ({
               setProjectName("");
               setError(null);
             }}
-            className="px-5 py-2 bg-gray-700 rounded-lg text-gray-300 hover:bg-gray-600 transition"
+            className="px-5 py-2 bg-gray-700 rounded-lg text-gray-300 hover:bg-gray-600 transition cursor-pointer"
             disabled={loading}
           >
             Cancel
@@ -78,7 +78,7 @@ const CreateProjectModal = ({
             className={`px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center gap-2 min-w-[110px] ${
               loading || !projectName.trim()
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:scale-105 transition"
+                : "hover:scale-105 transition cursor-pointer"
             }`}
           >
             {loading ? <Loader2 size={20} className="animate-spin" /> : "Create"}
