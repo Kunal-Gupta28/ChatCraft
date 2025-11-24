@@ -14,8 +14,8 @@ router.post('/create',
 // get all project
 router.get('/all',isLoggedIn,getAllProject)
 
-// add user to project
-router.post('/add-user',
+// add collaborator in project data
+router.put('/add-user',
     isLoggedIn,
     body('projectId').isString().withMessage("project id must be a string"),
     body('users').isArray({ min: 1 }).withMessage("Users must be a non-empty array"),
@@ -23,17 +23,17 @@ router.post('/add-user',
   addUserToProject
 );
 
-//  remove user from project
-router.post('/remove-user',isLoggedIn,
+//  remove collaborator from project data
+router.put('/remove-user',isLoggedIn,
   body('projectId').isString().withMessage("project id must be a string"),
   body('userId').isString().withMessage("user id must be a string"),
   removeUserFromProject
 );
 
-// get project
+// get project fromo database
 router.get('/get-project/:projectid',isLoggedIn,getProjectById)
 
-// update file tree 
+// update file tree in database
 router.put("/update-file-tree",
   isLoggedIn,
   body('projectId').isString().withMessage("projectId is required"),

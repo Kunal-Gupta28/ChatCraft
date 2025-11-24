@@ -12,7 +12,7 @@ const { setFileTree } = require("./services/project.service.js");
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin:[ process.env.CLIENT_URL,process.env.CLIENT_URL_DEV],
     methods: ["GET", "POST"],
   },
 });
@@ -56,6 +56,7 @@ io.on("connection", (socket) => {
 
   // Listen to project messages
   socket.on("project-message", async (data) => {
+
     try {
       // Broadcast user's message to others
       socket.broadcast
@@ -90,7 +91,6 @@ io.on("connection", (socket) => {
           console.error("Failed to save file tree");
         }
         }
-
  
       } catch (error) {
         console.error("failed to save Code in database");

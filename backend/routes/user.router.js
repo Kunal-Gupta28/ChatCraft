@@ -18,7 +18,7 @@ router.post('/login',[
 ],userController.loginController);
 
 // set avatar
-router.post('/setAvatar',isLoggedIn, userController.setAvatar);
+router.put('/setAvatar',isLoggedIn, userController.setAvatar);
 
 // get all user
 router.get('/all', isLoggedIn, userController.getAllUser);
