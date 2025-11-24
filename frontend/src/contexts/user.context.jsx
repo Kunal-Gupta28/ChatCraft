@@ -1,8 +1,9 @@
-import { useState, createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 
 const UserContext = createContext();
 
-function UserProvider({ children }) {
+export const UserProvider = ({ children }) => {
+  // load user from localStorage
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
@@ -13,11 +14,7 @@ function UserProvider({ children }) {
       {children}
     </UserContext.Provider>
   );
-}
+};
 
-// Custom hook to use context
-function useUser() {
-  return useContext(UserContext);
-}
-
-export { UserProvider, useUser };
+// use user context
+export const useUser = () => useContext(UserContext);
