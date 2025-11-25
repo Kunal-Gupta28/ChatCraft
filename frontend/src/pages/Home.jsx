@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axiosInstance from "../config/axios";
 import { useUser } from "../contexts/user.context";
-import { useProject } from "../contexts/project.context";
 
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/HomePage/Header";
@@ -11,12 +10,12 @@ import ProjectList from "../components/HomePage/ProjectList";
 import CreateProjectModal from "../components/HomePage/CreateProjectModal";
 import SuccessToast from "../components/HomePage/SuccessToast";
 import AvatarPicker from "../components/HomePage/AvatarPicker";
+import DeleteConfirmation from "../components/HomePage/DeleteConfirmation";
+import RenameProjectPopup from "../components/HomePage/RenameProjectPopup";
 
 const Home = () => {
-
   // context api
   const { user } = useUser();
-  const { setProject } = useProject();
 
   // state variables
   const [loading, setLoading] = useState(false);
@@ -27,6 +26,15 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [allProject, setAllProject] = useState([]);
   const [showAvatarPopup, setShowAvatarPopup] = useState(false);
+  const [deletePopup, setDeletePopup] = useState({
+    open: false,
+    projectId: null,
+  });
+  const [renamePopup, setRenamePopup] = useState({
+    open: false,
+    projectId: null,
+  });
+  const [newName, setNewName] = useState("");
 
   // fetching all projects and save it in allProject
   const fetchAllProjects = async () => {
@@ -69,6 +77,38 @@ const Home = () => {
     }
   };
 
+  // rename the project
+  const handleReanmeProject = async (projectId, newName) => {
+    console.log(newName);
+    try {
+      const response = await axiosInstance.put("/project/rename", {
+        projectId,
+        newName,
+      });
+
+      if (response.status == 200) {
+        fetchAllProjects();
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || error.message);
+    }
+  };
+
+  // delete protect
+  const handleDeleteProject = async (projectId) => {
+
+    try {
+      const response = await axiosInstance.delete(
+        `/project/delete/${projectId}`
+      );
+      if (response.status == 200) {
+        setAllProject(response.data.updatedProjectList);
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || error.message);
+    }
+  };
+
   // filter project by input
   const filteredProjects = allProject.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -93,7 +133,8 @@ const Home = () => {
 
       <ProjectList
         filteredProjects={filteredProjects}
-        setProject={setProject}
+        openDeletePopup={setDeletePopup}
+        openRenamePopup={setRenamePopup}
       />
 
       <CreateProjectModal
@@ -107,9 +148,28 @@ const Home = () => {
         setError={setError}
       />
 
+      {/* pops */}
       <AvatarPicker
         open={showAvatarPopup}
         onClose={() => setShowAvatarPopup(false)}
+      />
+
+      <RenameProjectPopup
+        open={renamePopup.open}
+        onClose={() => setRenamePopup({ open: false, projectId: null })}
+        onConfirm={(name) => {
+          handleReanmeProject(renamePopup.projectId, name);
+          setRenamePopup({ open: false, projectId: null });
+        }}
+      />
+
+      <DeleteConfirmation
+        open={deletePopup.open}
+        onClose={() => setDeletePopup({ open: false, projectId: null })}
+        onConfirm={() => {
+          handleDeleteProject(deletePopup.projectId);
+          setDeletePopup({ open: false, projectId: null });
+        }}
       />
 
       <SuccessToast success={success} />

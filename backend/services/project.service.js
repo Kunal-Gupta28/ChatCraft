@@ -108,6 +108,7 @@ module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
   if (!mongoose.Types.ObjectId.isValid(projectId))
     throw new Error("Invalid project id");
 
+  // finding the project in database by proejct id
   const project = await projectModel.findById(projectId);
   if (!project) throw new Error("Project not found");
 
@@ -130,4 +131,45 @@ module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
   await project.save();
 
   return project;
+};
+
+// rename the proejct in database
+module.exports.renameProject = async ({ projectId, newName }) => {
+  if (!projectId || !newName)
+    throw new Error("project id or new name of file is required");
+
+  if (!mongoose.Types.ObjectId.isValid(projectId))
+    throw new Error("Invalid project id");
+
+  try {
+    const updatedProject = await projectModel.findByIdAndUpdate(
+      projectId,
+      { name: newName },
+      { new: true }
+    );
+
+    if (!updatedProject) throw new Error("Project not found");
+    return updatedProject;
+  } catch (error) {
+    return error;
+  }
+};
+
+// delete the proejct from the database
+module.exports.deleteProject = async ({ projectId, userId }) => {
+  if (!projectId) throw new Error("Project ID is required");
+  if (!mongoose.Types.ObjectId.isValid(projectId))
+    throw new Error("Invalid project ID");
+
+  const project = await projectModel.findOne({
+    _id: projectId,
+    users: userId,
+  });
+
+  if (!project) throw new Error("Project not found or Unauthorized");
+
+  await projectModel.findByIdAndDelete(projectId);
+
+  // return all remaining project list for UI update
+  return projectModel.find({ users: userId }).populate("users");
 };

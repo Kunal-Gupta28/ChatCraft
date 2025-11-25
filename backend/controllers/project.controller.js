@@ -5,6 +5,8 @@ const {
   addUserToProject,
   removeUserFromProject,
   updateFileTree,
+  renameProject,
+  deleteProject,
 } = require("../services/project.service");
 const { validationResult } = require("express-validator");
 const userModel = require("../models/user.model");
@@ -14,7 +16,7 @@ module.exports.createProject = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.send(400).json({ errors: errors.array() });
+    return res.status(400).json({ errors: errors.array() });
   }
 
   try {
@@ -97,8 +99,8 @@ module.exports.updateFileTree = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { projectId, updatedfile, newCode } = req.body;
   try {
+    const { projectId, updatedfile, newCode } = req.body;
     const updatedProject = await updateFileTree({
       projectId,
       updatedfile,
@@ -106,6 +108,52 @@ module.exports.updateFileTree = async (req, res) => {
     });
     const updatedContent = updatedProject.fileTree[updatedfile].file.contents;
     return res.status(200).json(updatedContent);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+// rename proejct name in database
+module.exports.renameProject = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { projectId, newName } = req.body;
+    const updatedProject = await renameProject({ projectId, newName });
+
+    return res.status(200).json({
+      message: "Project renamed successfully",
+      updatedProject,
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+// delete project from database
+module.exports.deleteProject = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { projectId } = req.params;
+    const loggedInUser = await userModel.findOne({ email: req.user.email });
+    const updatedProjectList = await deleteProject({
+      projectId,
+      userId: loggedInUser._id,
+    });
+
+    return res.status(200).json({
+      message: "Project deleted successfully",
+      updatedProjectList,
+    });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }

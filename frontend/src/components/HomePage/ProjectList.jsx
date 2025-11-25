@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useProject } from "../../contexts/project.context";
 import ProjectCard from "./ProjectCard";
 
 // container animation
@@ -10,7 +11,12 @@ const containerVariants = {
   },
 };
 
-const ProjectList = ({ filteredProjects, setProject }) => {
+const ProjectList = ({
+  filteredProjects,
+  openDeletePopup,
+  openRenamePopup,
+}) => {
+  const {setProject} = useProject();
   const navigate = useNavigate();
 
   return (
@@ -20,8 +26,7 @@ const ProjectList = ({ filteredProjects, setProject }) => {
       animate="visible"
       className="max-w-[85vw] mx-auto grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 relative z-10"
     >
-
-        {/* show all projects if not present then show no project found paragraph */}
+      {/* show all projects if not present then show no project found paragraph */}
       <AnimatePresence>
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
@@ -32,6 +37,12 @@ const ProjectList = ({ filteredProjects, setProject }) => {
                 setProject(project);
                 navigate("/project");
               }}
+              onDelete={() =>
+                openDeletePopup({ open: true, projectId: project._id })
+              }
+              onRename={() =>
+                openRenamePopup({ open: true, projectId: project._id })
+              }
             />
           ))
         ) : (
