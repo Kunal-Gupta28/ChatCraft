@@ -12,7 +12,7 @@ const { setFileTree } = require("./services/project.service.js");
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin:[ process.env.CLIENT_URL,process.env.CLIENT_URL_DEV],
+    origin: [process.env.CLIENT_URL, process.env.CLIENT_URL_DEV],
     methods: ["GET", "POST"],
   },
 });
@@ -56,7 +56,6 @@ io.on("connection", (socket) => {
 
   // Listen to project messages
   socket.on("project-message", async (data) => {
-
     try {
       // Broadcast user's message to others
       socket.broadcast
@@ -70,7 +69,7 @@ io.on("connection", (socket) => {
 
       const prompt = data.message.replace("@ai", "").trim();
 
-      // 🔥 SAFELY call AI
+      // SAFELY call AI
       let aiData;
       try {
         aiData = await generateResult(prompt);
@@ -81,17 +80,17 @@ io.on("connection", (socket) => {
         };
       }
 
+      // if response from ai contains file tree then save it in database
       try {
-        if(aiData?.fileTree){
+        if (aiData?.fileTree) {
           const updatedProject = await setFileTree({
-          projectId: socket.project._id,
-          fileTree: aiData?.fileTree,
-        });
-               if (!updatedProject) {
-          console.error("Failed to save file tree");
+            projectId: socket.project._id,
+            fileTree: aiData?.fileTree,
+          });
+          if (!updatedProject) {
+            console.error("Failed to save file tree");
+          }
         }
-        }
- 
       } catch (error) {
         console.error("failed to save Code in database");
       }
@@ -123,5 +122,4 @@ server.listen(port, () => {
   console.log(`server is running at port: ${port}`);
 });
 
-// Export io for use in other modules
 module.exports = { server, io };

@@ -3,7 +3,7 @@ const userService = require("../services/user.service");
 const userModel = require("../models/user.model");
 const redisClient = require("../services/redis.service");
 
-// register
+// register an user
 module.exports.registerController = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -29,7 +29,7 @@ module.exports.registerController = async (req, res) => {
   }
 };
 
-// login
+// login the user
 module.exports.loginController = async (req, res) => {
   const errors = validationResult(req);
 
@@ -51,7 +51,7 @@ module.exports.loginController = async (req, res) => {
   }
 };
 
-// set avatar
+// update avatar in database
 module.exports.setAvatar = async (req, res) => {
   const errors = validationResult(req);
 

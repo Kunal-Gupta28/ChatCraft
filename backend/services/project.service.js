@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const projectModel = require("../models/project.model");
 
-// CREATE PROJECT
+// create project in database
 module.exports.createProject = async ({ name, userId }) => {
   if (!name) throw new Error("name is required");
   if (!userId) throw new Error("user Id is required");
@@ -22,14 +22,14 @@ module.exports.createProject = async ({ name, userId }) => {
   }
 };
 
-// GET ALL PROJECTS OF USER
+// get all project a particular user
 module.exports.getAllProjectByUserId = async ({ userId }) => {
   if (!userId) throw new Error("user id is required");
 
   return projectModel.find({ users: userId }).populate("users");
 };
 
-// ADD USER TO PROJECT
+// adding collaborators in a project
 module.exports.addUserToProject = async ({ projectId, users, userId }) => {
   if (!projectId || !userId) throw new Error("Missing projectId or userId");
 
@@ -63,7 +63,7 @@ module.exports.addUserToProject = async ({ projectId, users, userId }) => {
   return updatedProject;
 };
 
-// REMOVE USER FROM PROJECT
+// remove the user form the project
 module.exports.removeUserFromProject = async ({ projectId, userId }) => {
   if (!projectId || !userId) throw new Error("Missing projectId or userId");
 
@@ -80,7 +80,7 @@ module.exports.removeUserFromProject = async ({ projectId, userId }) => {
     .populate("users");
 };
 
-// GET PROJECT BY ID
+// get project by project id
 module.exports.getProjectById = async ({ projectId }) => {
   if (!projectId) throw new Error("project id is required");
   if (!mongoose.Types.ObjectId.isValid(projectId))
@@ -89,7 +89,7 @@ module.exports.getProjectById = async ({ projectId }) => {
   return projectModel.findById(projectId).populate("users");
 };
 
-// SET FILE TREE
+// setting the file tree data in project database
 module.exports.setFileTree = async ({ projectId, fileTree }) => {
   if (!projectId || !fileTree)
     throw new Error("project id or fileTree is required");
@@ -100,7 +100,7 @@ module.exports.setFileTree = async ({ projectId, fileTree }) => {
   return projectModel.findByIdAndUpdate(projectId, { fileTree }, { new: true });
 };
 
-// UPDATE SPECIFIC FILE IN FILE TREE
+// updating specific file in filetree ( in project database )
 module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
   if (!projectId || !updatedfile)
     throw new Error("project id or updated file is required");

@@ -1,6 +1,6 @@
 const userModel = require("../models/user.model");
 
-// create new user
+// create new user in database
 module.exports.createUser = async ({ username, email, password }) => {
   try {
     if (!username || !email || !password) {
@@ -26,7 +26,7 @@ module.exports.createUser = async ({ username, email, password }) => {
   }
 };
 
-// login
+// login the authentic user
 module.exports.login = async({email,password})=>{
     if(!email || !password){
         throw new Error("email or password is requried")
@@ -52,7 +52,7 @@ module.exports.login = async({email,password})=>{
     }
 }
 
-// get all user
+// get all user from database
 module.exports.getAllUser = async ({userId})=>{
   const users = await userModel.find({
     _id:{$ne:userId}
@@ -60,7 +60,7 @@ module.exports.getAllUser = async ({userId})=>{
   return users;
 }
 
-// set avatar
+// set avatar in projet database
 module.exports.setAvatar = async ({ avatar, userId }) => {
   try {
     if (!avatar || !userId) {
