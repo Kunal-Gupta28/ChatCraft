@@ -4,7 +4,7 @@ const FileTab = ({ fileName, isActive, onClick, onClose, disabled }) => {
   return (
     <div
       onClick={!disabled ? onClick : undefined}
-      className={`px-3 py-1 rounded-t-md flex items-center gap-2 select-none
+      className={`hidden md:flex px-3 py-1 rounded-t-md items-center gap-2 select-none
         ${
           isActive
             ? "bg-gray-800 text-white"

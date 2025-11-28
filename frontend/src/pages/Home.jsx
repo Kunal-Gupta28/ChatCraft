@@ -34,7 +34,6 @@ const Home = () => {
     open: false,
     projectId: null,
   });
-  const [newName, setNewName] = useState("");
 
   // fetching all projects and save it in allProject
   const fetchAllProjects = async () => {
@@ -79,7 +78,6 @@ const Home = () => {
 
   // rename the project
   const handleReanmeProject = async (projectId, newName) => {
-    console.log(newName);
     try {
       const response = await axiosInstance.put("/project/rename", {
         projectId,
@@ -96,7 +94,6 @@ const Home = () => {
 
   // delete protect
   const handleDeleteProject = async (projectId) => {
-
     try {
       const response = await axiosInstance.delete(
         `/project/delete/${projectId}`
@@ -119,7 +116,7 @@ const Home = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="min-h-screen bg-gray-950 text-white px-6 py-10 relative overflow-hidden select-none"
+      className="h-[100dvh] lg:min-h-[100dvh] bg-gray-950 text-white px-2 lg:px-6 py-5 lg:py-10 relative overflow-hidden select-none"
     >
       {/* background Blobs */}
       <BackgroundBlobs />

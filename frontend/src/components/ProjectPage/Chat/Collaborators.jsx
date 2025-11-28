@@ -13,7 +13,6 @@ const Collaborators = ({ setShowUsers }) => {
   // context api
   const { project, setProject } = useProject();
   const { user: currentUser } = useUser();
-
   // state variables
   const [allUsers, setAllUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);

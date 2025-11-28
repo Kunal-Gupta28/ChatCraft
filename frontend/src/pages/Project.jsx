@@ -6,98 +6,77 @@ import {
   receiveMessage,
   sendMessage,
 } from "../config/socket";
-import CodeEditor from "../components/ProjectPage/Code/CodeEditor";
-import Chat from "../components/ProjectPage/Chat/Chat";
 import { getWebContainer } from "../config/webContainer";
+import ResponsiveLayout from "../components/ProjectPage/ResponsiveLayout";
 
 const Project = () => {
   // context api
   const { user: currentUser } = useUser();
   const { project: currentProject } = useProject();
 
-  // state variables
+  // state variable
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [fileTree, setFileTree] = useState(null);
   const [webContainer, setWebContainer] = useState(null);
 
-  // if file tree is  present in project context then save it filetree variable
+  // Load saved file tree
   useEffect(() => {
     if (currentProject?.fileTree) {
       setFileTree(currentProject.fileTree);
     }
   }, [currentProject?.fileTree]);
 
-  // load webcontainer once
+  // Load WebContainer once
   useEffect(() => {
     if (!webContainer) {
       getWebContainer().then((container) => setWebContainer(container));
     }
   }, [webContainer]);
 
-  // initializing the socket setup and receive message
+  // Setup Socket for messages
   useEffect(() => {
     if (!currentProject?._id) return;
     const socket = initializeSocket(currentProject._id);
 
-    // recive message handler
-    const receiveMessagaeHandler = (data) => {
+    const receiveHandler = (data) => {
       try {
         const { senderName, message } = data;
-
-        // if AI message contains file tree then save it in filetree vairable and in chat messages
         if (senderName === "AI") {
           if (message?.fileTree) setFileTree(message.fileTree);
-
           setMessages((prev) => [
             ...prev,
-            {
-              senderName,
-              senderId: data.senderId,
-              message: message?.text || "",
-              timestamp: data.timestamp,
-            },
+            { ...data, message: message?.text || "" },
           ]);
-          return;
+        } else {
+          setMessages((prev) => [...prev, data]);
         }
-
-        // normal user message
-        setMessages((prev) => [...prev, data]);
       } catch (err) {
         console.error("Invalid message:", data, err);
       }
     };
 
-    // listener (uses correct cleanup)
-    const cleanup = receiveMessage("project-message", receiveMessagaeHandler);
-
-    // cleanup
+    const cleanup = receiveMessage("project-message", receiveHandler);
     return () => {
       cleanup?.();
-      if (socket.connected) socket.disconnect();
+      socket.connected && socket.disconnect();
     };
   }, [currentProject?._id]);
 
-  // mount fileTree in web container
+  // Mount file structure
   useEffect(() => {
     if (!webContainer || !fileTree) return;
-
-    (async () => {
-      await webContainer.mount(fileTree);
-    })();
+    webContainer.mount(fileTree);
   }, [webContainer, fileTree]);
 
-  // properly destroyed the previous WebContainer instance
+  // Teardown previous instance
   useEffect(() => {
-    return () => {
-      webContainer?.teardown?.();
-    };
+    return () => webContainer?.teardown?.();
   }, [webContainer]);
 
-  // send message
+  // Send message
   const handleSend = useCallback(() => {
     if (!inputMessage.trim()) return;
-
     const msg = {
       senderId: currentUser._id,
       senderName: currentUser.username,
@@ -110,31 +89,14 @@ const Project = () => {
   }, [inputMessage, currentUser]);
 
   return (
-    <div className="relative min-h-screen bg-gray-950 text-white flex flex-col overflow-hidden">
-      {/* background gradients */}
-      <div className="absolute top-0 -left-24 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-gradient-to-r from-blue-700 to-purple-700 rounded-full blur-3xl opacity-20 animate-pulse" />
-      <div className="absolute bottom-0 -right-24 w-[400px] h-[400px] md:w-[500px] md:h-[500px] bg-gradient-to-bl from-green-500 to-cyan-500 rounded-full blur-3xl opacity-15 animate-pulse delay-1000" />
-
-      {/* main content */}
-      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-[2.5vh] md:px-4">
-        <div className="flex flex-col md:flex-row w-full gap-6 h-[95vh]">
-          {/* chat section*/}
-          <section className="w-full md:w-[22%] h-full bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-2xl shadow-lg overflow-hidden flex flex-col">
-            <Chat
-              messages={messages}
-              handleSend={handleSend}
-              inputMessage={inputMessage}
-              setInputMessage={setInputMessage}
-            />
-          </section>
-
-          {/* code editor section*/}
-          <section className="hidden md:flex md:w-[78%] h-full bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-2xl shadow-lg overflow-hidden">
-            <CodeEditor fileTree={fileTree} webContainer={webContainer} />
-          </section>
-        </div>
-      </main>
-    </div>
+    <ResponsiveLayout
+      messages={messages}
+      handleSend={handleSend}
+      inputMessage={inputMessage}
+      setInputMessage={setInputMessage}
+      fileTree={fileTree}
+      webContainer={webContainer}
+    />
   );
 };
 

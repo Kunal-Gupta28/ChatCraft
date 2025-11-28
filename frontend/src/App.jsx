@@ -1,18 +1,18 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import React, { Suspense } from "react";
+import Landingpage from "./pages/Landingpage";
 
 // Lazy-loaded pages (code splitting)
-const Landingpage = React.lazy(() => import("./pages/Landingpage"));
 const Register = React.lazy(() => import("./pages/Register"));
 const Login = React.lazy(() => import("./pages/Login"));
 const Home = React.lazy(() => import("./pages/Home"));
 const Project = React.lazy(() => import("./pages/Project"));
 const NotFound = React.lazy(() => import("./components/NotFound"));
 
-// Authentication 
+// Authentication
 import UserAuth from "./auth/UserAuth";
 
-// loading animtion 
+// Loading animation
 import Loader from "./components/LoadingAnimation";
 
 // Context API
@@ -21,35 +21,63 @@ import { ProjectProvider } from "./contexts/project.context";
 
 const App = () => {
   return (
-    // Global User Context
     <UserProvider>
-
-      {/* Global Project Context */}
       <ProjectProvider>
-
-        {/* Router Wrapper */}
         <BrowserRouter>
+          <Routes>
+            {/* Landing page loads immediately */}
+            <Route path="/" element={<Landingpage />} />
 
-          {/* Suspense fallback for lazy-loaded components */}
-          <Suspense fallback={<Loader/>}>
+            {/* Lazy-loaded + public */}
+            <Route
+              path="/register"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <Register />
+                </Suspense>
+              }
+            />
 
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Landingpage />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/login" element={<Login />} />
+            <Route
+              path="/login"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <Login />
+                </Suspense>
+              }
+            />
 
-              {/* Protected Routes (User must be authenticated) */}
-              <Route element={<UserAuth />}>
-                <Route path="/home" element={<Home />} />
-                <Route path="/project" element={<Project />} />
-              </Route>
+            {/* Protected + lazy-loaded */}
+            <Route element={<UserAuth />}>
+              <Route
+                path="/home"
+                element={
+                  <Suspense fallback={<Loader />}>
+                    <Home />
+                  </Suspense>
+                }
+              />
 
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+              <Route
+                path="/project"
+                element={
+                  <Suspense fallback={<Loader />}>
+                    <Project />
+                  </Suspense>
+                }
+              />
+            </Route>
 
-          </Suspense>
+            {/* Not Found */}
+            <Route
+              path="*"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <NotFound />
+                </Suspense>
+              }
+            />
+          </Routes>
         </BrowserRouter>
       </ProjectProvider>
     </UserProvider>

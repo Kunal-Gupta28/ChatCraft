@@ -19,20 +19,18 @@ const AuthForm = ({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
-      <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-md transition-transform duration-300">
-        
+    <div className="h-[100dvh] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 select-none">
+      <div className="bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-md transition-transform duration-300">
         {/* Back Button */}
         <button
           onClick={() => navigate("/")}
-          className="mb-4 text-blue-600 dark:text-blue-400 flex items-center gap-1 cursor-pointer 
-                     hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
+          className="mb-4 text-blue-400 text-2xl flex items-center gap-1 cursor-pointer hover:text-blue-300 transition-colors duration-200"
         >
-          &larr; Back
+          &larr;
         </button>
 
         {/* heading */}
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+        <h2 className="text-3xl font-bold mb-6 text-center text-white">
           {title}
         </h2>
 
@@ -47,11 +45,10 @@ const AuthForm = ({
         <form onSubmit={onSubmit}>
           {fields.map((field) => (
             <div key={field.id} className="mb-4">
-              
               {/* label */}
               <label
                 htmlFor={field.id}
-                className="block text-gray-700 dark:text-gray-300 mb-1 capitalize"
+                className="block text-gray-300 mb-1 capitalize"
               >
                 {field.label}
               </label>
@@ -64,8 +61,7 @@ const AuthForm = ({
                 onChange={handleChange}
                 required
                 placeholder={`Enter your ${field.label}`}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 
-                           focus:outline-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-800 border-gray-700 text-white"
               />
             </div>
           ))}
@@ -85,19 +81,15 @@ const AuthForm = ({
         </form>
 
         {/* footer navigation */}
-        <div className="mt-6 text-center text-gray-700 dark:text-gray-300">
-          <span>{footerText}</span>{" "}
-          
-          {/* Login/Register button */}
+        <div className="mt-6 text-center text-gray-300">
+          <span>{footerText}</span> {/* Login/Register button */}
           <button
             onClick={() => {
               footerLinkText === "Register"
                 ? navigate("/register")
                 : navigate("/login");
             }}
-            className="text-blue-600 dark:text-blue-400 cursor-pointer 
-                       hover:text-blue-800 dark:hover:text-blue-300
-                       transition duration-200"
+            className="text-blue-400 cursor-pointer hover:text-blue-300 transition duration-200"
           >
             {footerLinkText}
           </button>

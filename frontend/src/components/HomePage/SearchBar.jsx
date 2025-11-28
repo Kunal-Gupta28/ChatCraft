@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 
 const SearchBar = ({ searchTerm, setSearchTerm }) => (
-  <div className="max-w-[85vw] mx-auto mb-8 relative z-10">
+  <div className="max-w-[85vw] h-[5%] mx-auto mb-4 relative z-10 ">
     <div className="relative">
       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
         <Search size={20} />

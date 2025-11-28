@@ -12,7 +12,6 @@
   scrollbar-width: none;
 }
 
-
 .prose pre {
   @apply bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto text-xs;
 }
@@ -20,6 +19,138 @@
   @apply font-mono;
 }
 
-body{
+body {
   background-color: #030712;
+}
+
+/* Hide scrollbar only for large screens */
+@media (min-width: 1024px) {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+.project-grid {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 3rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+/* sm */
+@media (min-width: 640px) {
+  .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* chat & editor default (mobile) */
+.chatBox_size,
+.codeEditor_size {
+  width: 100%;
+}
+
+/* md — horizontal split starts */
+@media (min-width: 768px) {
+  .chatBox_size {
+    width: 40%;
+  }
+  .codeEditor_size {
+    width: 60%;
+  }
+}
+
+/* lg */
+@media (min-width: 1024px) {
+  .project-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 30%;
+  }
+
+  .codeEditor_size {
+    width: 70%;
+  }
+}
+
+/* xl */
+@media (min-width: 1280px) {
+  .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 30%;
+  }
+
+  .codeEditor_size {
+    width: 70%;
+  }
+}
+
+/* 3xl */
+@media (min-width: 1792px) {
+  .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 25%;
+  }
+
+  .codeEditor_size {
+    width: 75%;
+  }
+}
+
+/* 4xl */
+@media (min-width: 2048px) {
+  .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 22%;
+  }
+
+  .codeEditor_size {
+    width: 78%;
+  }
+}
+
+/* 5xl */
+@media (min-width: 2560px) {
+  .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 18%;
+  }
+
+  .codeEditor_size {
+    width: 82%;
+  }
+}
+
+/* 6xl */
+@media (min-width: 3440px) {
+  .project-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .chatBox_size {
+    width: 15%;
+  }
+
+  .codeEditor_size {
+    width: 85%;
+  }
 }

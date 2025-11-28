@@ -7,7 +7,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useUser } from "../../contexts/user.context";
 import { useProject } from "../../contexts/project.context";
 
@@ -27,22 +27,14 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // close menu on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   return (
     <motion.div
       variants={itemVariants}
-      onClick={onOpen}
-      className="bg-gray-800/40 backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-blue-500/10 group relative"
+      // open project only when menu is not open
+      onClick={() => {
+        if (!menuOpen) onOpen();
+      }}
+      className="bg-gray-800/40 h-[160px] backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-blue-500/10 group relative"
     >
       {/* top row */}
       <div className="flex items-center justify-between mb-4">
@@ -57,12 +49,12 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
         </div>
 
         {/* three dots button (only owner can see this) */}
-        {project.owner === user._id ? (
+        {project.owner === user?._id ? (
           <div
             className="relative w-8 h-8 flex justify-center items-center rounded-full cursor-pointer"
             ref={menuRef}
             onClick={(e) => {
-              e.stopPropagation();
+              e.stopPropagation(); 
               setProject(project);
             }}
           >
@@ -74,38 +66,47 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
 
             {/* rename and delete button */}
             {menuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.12 }}
-                className=" absolute right-0 mt-2 w-44 z-40 bg-[#0d0d0d] border border-[#1f1f1f] shadow-2xl shadow-black/60 rounded-2xl"
-              >
-                {/* rename button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    onRename();
-                  }}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-[#1a1a1a] transition text-gray-200 cursor-pointer"
-                >
-                  <Pencil size={15} className="text-gray-400" />
-                  Rename
-                </button>
+              <>
+                {/* backdrop to close menu on outside click without navigating */}
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setMenuOpen(false)}
+                ></div>
 
-                {/* delete button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    onDelete();
-                  }}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-[#2a0f0f] transition text-red-400 cursor-pointer"
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 mt-2 z-40 bg-[#0d0d0d] border border-[#1f1f1f] shadow-2xl shadow-black/60 rounded-2xl"
                 >
-                  <Trash2 size={15} className="text-red-400" />
-                  Delete
-                </button>
-              </motion.div>
+                  {/* rename button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      onRename();
+                    }}
+                    className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#1a1a1a] transition text-gray-200 cursor-pointer"
+                  >
+                    <Pencil size={15} className="text-gray-400" />
+                    Rename
+                  </button>
+
+                  {/* delete button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      onDelete();
+                    }}
+                    className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#2a0f0f] transition text-red-400 cursor-pointer"
+                  >
+                    <Trash2 size={15} className="text-red-400" />
+                    Delete
+                  </button>
+                </motion.div>
+              </>
             )}
           </div>
         ) : null}

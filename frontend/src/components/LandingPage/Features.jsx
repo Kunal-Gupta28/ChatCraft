@@ -6,7 +6,7 @@ import FeatureCard from "./FeatureCard";
 const Features = () => {
   return (
     <section className="bg-gray-900 py-20">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className=" mx-auto px-6 2xl:px-[4%]">
 
         {/* Heading */}
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
@@ -15,7 +15,7 @@ const Features = () => {
 
         {/* Cards */}
         <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+          className="grid md:grid-cols-3 gap-12"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}

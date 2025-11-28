@@ -5,7 +5,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   return (
-    <header className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center relative z-10">
+    <header className=" mx-auto px-6 2xl:px-[4%] py-5 flex justify-between items-center relative z-10">
       <div className="text-2xl md:text-3xl font-bold flex items-center">
         {/* logo */}
         <Zap className="text-blue-400 mr-2" />
