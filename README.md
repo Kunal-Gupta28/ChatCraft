@@ -1,58 +1,96 @@
 # ChatCraft
 
-ChatCraft is a full-stack real-time collaborative coding platform inspired by modern cloud IDEs.  
-It allows multiple users to collaborate on code simultaneously, manage files, and communicate in real time using WebSockets.
+ChatCraft is a full-stack real-time collaborative coding platform inspired by modern cloud-based IDEs.  
+It enables multiple users to collaborate on projects, edit code in real time, manage files, and stay synchronized using WebSockets.
+
+---
 
 ## Problem Statement
 
-Most beginner developers lack exposure to real-time collaborative systems used in professional environments.  
-ChatCraft aims to simulate such systems by providing a browser-based collaborative coding experience.
+Modern development teams rely heavily on real-time collaboration tools, yet building such systems requires deep understanding of state synchronization, event-driven architecture, and scalable backend communication.
 
-## Features
+ChatCraft was built to demonstrate practical implementation of these concepts using the MERN stack and real-time technologies.
+
+---
+
+## Core Features
 
 - Real-time collaborative code editing
-- Multi-user room support
+- Multi-user project rooms
 - Live synchronization using WebSockets
-- File and project management
-- User authentication
-- Responsive user interface
+- File and folder management system
+- User authentication and authorization
+- Persistent data storage
+- Responsive and interactive UI
 
+---
 
-## Tech Stack
+## Complete Tech Stack
 
 ### Frontend
-- React
-- JavaScript
-- CSS
+- React.js
+- JavaScript (ES6+)
+- HTML5
+- CSS3
+- Context API (state management)
+- Axios (API communication)
 
 ### Backend
 - Node.js
 - Express.js
+- RESTful APIs
+- JWT-based authentication
+
+### Real-Time Communication
 - Socket.io
+- WebSockets
 
 ### Database
 - MongoDB
+- Mongoose (ODM)
 
+### Authentication & Security
+- JSON Web Tokens (JWT)
+- Password hashing (bcrypt)
+- Protected API routes
 
-## Architecture Overview
+### Development & Tooling
+- Git & GitHub
+- Postman (API testing)
+- npm (package management)
 
-- Client connects to server using Socket.io
-- Server handles real-time events and broadcasts changes
-- MongoDB stores user and project data
-- Authentication ensures secure access
+---
 
+## Application Architecture
+
+- React frontend communicates with Express backend using REST APIs
+- Real-time events handled through Socket.io
+- MongoDB stores users, projects, and file metadata
+- JWT ensures secure user sessions
+- WebSocket events synchronize code changes across connected users
+
+---
 
 ## Screenshots
 
-(Add screenshots of UI, editor, collaboration view here)
+### Landing page View
+![Collaboration](images/landingPage.png)
 
+### Dashboard
+![Dashboard](images/dashboard.png)
+
+### Code Editor
+![Code Editor](images/editor.png)
+
+---
 
 ## Live Demo
 
-(Add deployed link here)
+(Add deployed application link here)
 
+---
 
-## Installation & Setup
+## Installation and Setup
 
 ### Prerequisites
 - Node.js
@@ -60,8 +98,23 @@ ChatCraft aims to simulate such systems by providing a browser-based collaborati
 - Git
 
 ### Steps
+
 ```bash
 git clone https://github.com/Kunal-Gupta28/ChatCraft.git
 cd ChatCraft
+
+# Install backend dependencies
+cd server
 npm install
+
+# Install frontend dependencies
+cd ../client
+npm install
+
+# Run backend
+cd ../server
+npm start
+
+# Run frontend
+cd ../client
 npm start
