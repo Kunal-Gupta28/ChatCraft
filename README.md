@@ -7,9 +7,9 @@ It enables multiple users to collaborate on projects, edit code in real time, ma
 
 ## Problem Statement
 
-Modern development teams rely heavily on real-time collaboration tools, yet building such systems requires deep understanding of state synchronization, event-driven architecture, and scalable backend communication.
+Modern development teams rely heavily on real-time collaboration tools, yet building such systems requires a strong understanding of state synchronization, event-driven architecture, and scalable backend communication.
 
-ChatCraft was built to demonstrate practical implementation of these concepts using the MERN stack and real-time technologies.
+ChatCraft was built to demonstrate a practical implementation of these concepts using the MERN stack and real-time technologies.
 
 ---
 
@@ -21,7 +21,7 @@ ChatCraft was built to demonstrate practical implementation of these concepts us
 - File and folder management system
 - User authentication and authorization
 - Persistent data storage
-- Responsive and interactive UI
+- Responsive and interactive user interface
 
 ---
 
@@ -32,8 +32,8 @@ ChatCraft was built to demonstrate practical implementation of these concepts us
 - JavaScript (ES6+)
 - HTML5
 - CSS3
-- Context API (state management)
-- Axios (API communication)
+- Context API for state management
+- Axios for API communication
 
 ### Backend
 - Node.js
@@ -49,32 +49,32 @@ ChatCraft was built to demonstrate practical implementation of these concepts us
 - MongoDB
 - Mongoose (ODM)
 
-### Authentication & Security
+### Authentication and Security
 - JSON Web Tokens (JWT)
-- Password hashing (bcrypt)
+- Password hashing using bcrypt
 - Protected API routes
 
-### Development & Tooling
-- Git & GitHub
-- Postman (API testing)
-- npm (package management)
+### Development and Tooling
+- Git and GitHub
+- Postman for API testing
+- npm for package management
 
 ---
 
 ## Application Architecture
 
-- React frontend communicates with Express backend using REST APIs
-- Real-time events handled through Socket.io
-- MongoDB stores users, projects, and file metadata
-- JWT ensures secure user sessions
-- WebSocket events synchronize code changes across connected users
+- React frontend communicates with the Express backend through REST APIs
+- Real-time events are handled using Socket.io
+- MongoDB stores user data, projects, and file metadata
+- JWT ensures secure authentication and authorization
+- WebSocket events synchronize code changes across all connected users
 
 ---
 
 ## Screenshots
 
-### Landing page View
-![Collaboration](images/landingPage.png)
+### Landing Page
+![Landing Page](images/landingPage.png)
 
 ### Dashboard
 ![Dashboard](images/dashboard.png)
@@ -86,7 +86,8 @@ ChatCraft was built to demonstrate practical implementation of these concepts us
 
 ## Live Demo
 
-(Add deployed application link here)
+Frontend: https://chat-craft-xi.vercel.app  
+Backend API: https://chatcraft-m2kh.onrender.com
 
 ---
 
