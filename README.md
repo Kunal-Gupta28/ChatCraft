@@ -1,7 +1,8 @@
-# ChatCraft
+# ChatCraft – Real-Time Collaborative Code Editor
 
-ChatCraft is a full-stack real-time collaborative coding platform inspired by modern cloud-based IDEs.  
-It enables multiple users to collaborate on projects, edit code in real time, manage files, and stay synchronized using WebSockets.
+ChatCraft is a full-stack real-time collaborative coding platform that allows multiple users to join a shared room and write code together with live synchronization, similar to collaborative IDEs.
+
+The project focuses on real-time communication, multi-user state synchronization, and scalable backend architecture using modern web technologies.
 
 ---
 
