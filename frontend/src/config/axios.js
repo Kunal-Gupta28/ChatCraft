@@ -11,7 +11,6 @@ axiosInstance.interceptors.request.use((config) => {
   if (token && token !== "undefined" && token !== "null") {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
@@ -25,7 +24,7 @@ axiosInstance.interceptors.response.use(
     if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
     }
 
     // server down / no internet

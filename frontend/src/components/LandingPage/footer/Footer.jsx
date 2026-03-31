@@ -1,3 +1,5 @@
+import FooterColumn from "./FooterColumn";
+
 const Footer = () => {
   return (
     <footer className="bg-gray-950 py-12 border-t border-gray-800 text-gray-400 text-sm">
@@ -26,21 +28,5 @@ const Footer = () => {
     </footer>
   );
 };
-
-// footer column
-const FooterColumn = ({ title, links }) => (
-  <div>
-
-    {/* heading */}
-    <h4 className="font-bold text-white mb-4">{title}</h4>
-
-    {/* list */}
-    <ul>
-      {links.map((l, index) => (
-        <li key={index} className="mb-2 hover:text-blue-400 cursor-pointer">{l}</li>
-      ))}
-    </ul>
-  </div>
-);
 
 export default Footer;

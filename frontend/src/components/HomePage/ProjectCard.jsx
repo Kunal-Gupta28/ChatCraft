@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Folder,
@@ -7,7 +8,6 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useState, useRef } from "react";
 import { useUser } from "../../contexts/user.context";
 import { useProject } from "../../contexts/project.context";
 
@@ -25,15 +25,45 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
   const { user } = useUser();
   const { setProject } = useProject();
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
+
+  const isOwner = useMemo(() => project.owner === user?._id, [project.owner, user?._id]);
+  const memberCount = useMemo(() => project.users.length, [project.users]);
+  
+  // menu toggle
+  const toggleMenu = useCallback(() => {
+    setMenuOpen((prev) => !prev);
+  }, []);
+
+  // open menu
+  const handleOpen = useCallback(() => {
+    if (!menuOpen) onOpen();
+  }, [menuOpen, onOpen]);
+
+  // rename handler
+  const handleRename = useCallback((e) => {
+    e.stopPropagation();
+    setMenuOpen(false);
+    onRename();
+  }, [onRename]);
+
+  // delete handler
+  const handleDelete = useCallback((e) => {
+    e.stopPropagation();
+    setMenuOpen(false);
+    onDelete();
+  }, [onDelete]);
+
+  // handle menu click
+  const handleMenuClick = useCallback((e) => {
+    e.stopPropagation();
+    setProject(project);
+  }, [project, setProject]);
 
   return (
     <motion.div
       variants={itemVariants}
       // open project only when menu is not open
-      onClick={() => {
-        if (!menuOpen) onOpen();
-      }}
+      onClick={handleOpen}
       className="bg-gray-800/40 h-[160px] backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-blue-500/10 group relative"
     >
       {/* top row */}
@@ -49,19 +79,15 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
         </div>
 
         {/* three dots button (only owner can see this) */}
-        {project.owner === user?._id ? (
+        {isOwner ? (
           <div
             className="relative w-8 h-8 flex justify-center items-center rounded-full cursor-pointer"
-            ref={menuRef}
-            onClick={(e) => {
-              e.stopPropagation(); 
-              setProject(project);
-            }}
+            onClick={handleMenuClick}
           >
             <MoreVertical
               size={20}
               className="text-gray-400 hover:text-white transition cursor-pointer"
-              onClick={() => setMenuOpen((prev) => !prev)}
+              onClick={toggleMenu}
             />
 
             {/* rename and delete button */}
@@ -82,11 +108,7 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
                 >
                   {/* rename button */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onRename();
-                    }}
+                    onClick={handleRename}
                     className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#1a1a1a] transition text-gray-200 cursor-pointer"
                   >
                     <Pencil size={15} className="text-gray-400" />
@@ -95,11 +117,7 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
 
                   {/* delete button */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onDelete();
-                    }}
+                    onClick={handleDelete}
                     className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#2a0f0f] transition text-red-400 cursor-pointer"
                   >
                     <Trash2 size={15} className="text-red-400" />
@@ -115,14 +133,16 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
       {/* user icon and number of members in project*/}
       <div className="flex items-center gap-2 text-gray-400 text-sm mb-6">
         <Users size={16} className="opacity-80" />
-        <span className="tracking-wide">{project.users.length} member(s)</span>
+        <span className="tracking-wide">{memberCount} member(s)</span>
       </div>
 
-      {/* open project */}
+      {/* open project text + right arrow */}
       <div className="flex justify-between items-center text-sm">
         <span className="text-blue-400 font-medium tracking-wide">
           Open Project
         </span>
+
+        {/* right arrow symbol */}
         <ArrowRight
           size={18}
           className="text-gray-500 group-hover:text-blue-400 transition"
@@ -132,4 +152,4 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
   );
 };
 
-export default ProjectCard;
+export default React.memo(ProjectCard);

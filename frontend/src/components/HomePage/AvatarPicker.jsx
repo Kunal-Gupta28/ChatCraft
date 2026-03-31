@@ -1,39 +1,61 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check } from "lucide-react";
 import axiosInstance from "../../config/axios";
 import {useUser} from '../../contexts/user.context'
 
+const avatarOptions = [
+  "/assets/1.webp",
+  "/assets/2.webp",
+  "/assets/3.webp",
+  "/assets/4.webp",
+  "/assets/5.webp",
+  "/assets/6.webp",
+  "/assets/7.webp",
+  "/assets/8.webp",
+  "/assets/9.webp",
+  "/assets/10.webp",
+  "/assets/11.webp",
+  "/assets/12.webp",
+];
+
 const AvatarPicker = ({ open, onClose }) => {
   
   // context api
   const {user, setUser} = useUser();
-  const avatarOptions = [
-    "/assets/1.png",
-    "/assets/2.png",
-    "/assets/3.png",
-    "/assets/4.png",
-    "/assets/5.png",
-    "/assets/6.png",
-    "/assets/7.png",
-    "/assets/8.png",
-    "/assets/9.png",
-    "/assets/10.png",
-    "/assets/11.png",
-    "/assets/12.png",
-  ];
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // send selected image to backend and save its response in user context
-  const handleSave = async () => {
-    const res = await axiosInstance.put('/setAvatar', { avatar: selected, userId: user._id });
-    if (res.status === 200) {
-       setUser(res.data.user);
-       localStorage.setItem("user",JSON.stringify(res.data.user));
-      setSelected(null);
-      onClose();
+  const handleClose = useCallback(() => {
+    setSelected(null);
+    onClose();
+  }, [onClose]);
+
+  const handleSelect = useCallback((avatar) => {
+    setSelected(avatar);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!selected || loading) return;
+    try {
+      setLoading(true);
+      const res = await axiosInstance.put('/setAvatar', {
+        avatar: selected,
+        userId: user._id,
+      });
+
+      if (res.status === 200) {
+        setUser(res.data.user);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        setSelected(null);
+        onClose();
+      }
+    } catch (err) {
+      console.error("Failed to update avatar", err);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [selected, user?._id, setUser, onClose, loading]);
 
   return (
     <AnimatePresence>
@@ -57,10 +79,7 @@ const AvatarPicker = ({ open, onClose }) => {
             <button
               aria-label="Close"
               className="absolute top-4 right-4 text-gray-400 hover:text-white transition cursor-pointer"
-              onClick={() => {
-                setSelected(null);
-                onClose();
-              }}
+              onClick={handleClose}
             >
               <X size={24} />
             </button>
@@ -72,12 +91,12 @@ const AvatarPicker = ({ open, onClose }) => {
 
             {/* Avatar Grid */}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 mb-6">
-              {avatarOptions?.map((avatar, index) => (
+              {avatarOptions?.map((avatar) => (
                 <motion.div
-                  key={index}
+                  key={avatar}
                   whileHover={{ scale: 1.07 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelected(avatar)}
+                  onClick={() => handleSelect(avatar)}
                   className="relative cursor-pointer rounded-xl overflow-hidden border border-gray-700 hover:border-blue-400 transition"
                 >
                   {/* Avatar Image */}
@@ -103,17 +122,17 @@ const AvatarPicker = ({ open, onClose }) => {
 
             {/* Save Button */}
             <button
-              disabled={!selected}
+              disabled={!selected || loading}
               onClick={handleSave}
               className={`w-full py-3 rounded-xl font-semibold transition
                 ${
-                  selected
+                  selected && !loading
                     ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
                     : "bg-gray-700 text-gray-400 cursor-not-allowed"
                 }
               `}
             >
-              Save
+              {loading ? "Saving..." : "Save"}
             </button>
           </motion.div>
         </motion.div>

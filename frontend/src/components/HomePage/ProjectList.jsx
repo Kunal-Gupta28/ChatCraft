@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProject } from "../../contexts/project.context";
@@ -19,6 +20,31 @@ const ProjectList = ({
   const { setProject } = useProject();
   const navigate = useNavigate();
 
+  // navigate to project
+  const handleOpen = useCallback(
+    (project) => {
+      setProject(project);
+      navigate("/project");
+    },
+    [setProject, navigate]
+  );
+
+  // delete popup
+  const handleDelete = useCallback(
+    (projectId) => {
+      openDeletePopup({ open: true, projectId });
+    },
+    [openDeletePopup]
+  );
+
+  // rename popup
+  const handleRename = useCallback(
+    (projectId) => {
+      openRenamePopup({ open: true, projectId });
+    },
+    [openRenamePopup]
+  );
+
   return (
     <motion.div
       variants={containerVariants}
@@ -29,21 +55,14 @@ const ProjectList = ({
       {/* show all projects if not present then show no project found paragraph */}
       <div className="gap-6 pt-4 pb-12 lg:pb-4 project-grid">
         <AnimatePresence>
-          {filteredProjects.length > 0 ? (
+          {filteredProjects?.length > 0 ? (
             filteredProjects.map((project) => (
               <ProjectCard
                 key={project._id}
                 project={project}
-                onOpen={() => {
-                  setProject(project);
-                  navigate("/project");
-                }}
-                onDelete={() =>
-                  openDeletePopup({ open: true, projectId: project._id })
-                }
-                onRename={() =>
-                  openRenamePopup({ open: true, projectId: project._id })
-                }
+                onOpen={() => handleOpen(project)}
+                onDelete={() => handleDelete(project._id)}
+                onRename={() => handleRename(project._id)}
               />
             ))
           ) : (

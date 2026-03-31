@@ -1,19 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import React, { Suspense } from "react";
-import Landingpage from "./pages/Landingpage";
-
+import { lazy, Suspense } from "react";
 // Lazy-loaded pages (code splitting)
-const Register = React.lazy(() => import("./pages/Register"));
-const Login = React.lazy(() => import("./pages/Login"));
-const Home = React.lazy(() => import("./pages/Home"));
-const Project = React.lazy(() => import("./pages/Project"));
-const NotFound = React.lazy(() => import("./components/NotFound"));
+import Landingpage from "./pages/Landingpage";
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const Home = lazy(() => import("./pages/Home"));
+const Project = lazy(() => import("./pages/Project"));
+const NotFound = lazy(() => import("./components/NotFound"));
 
 // Authentication
-import UserAuth from "./auth/UserAuth";
-
-// Loading animation
 import Loader from "./components/LoadingAnimation";
+import UserAuth from "./auth/UserAuth";
 
 // Context API
 import { UserProvider } from "./contexts/user.context";
@@ -30,19 +26,19 @@ const App = () => {
 
             {/* Lazy-loaded + public */}
             <Route
-              path="/register"
+              path="/auth/:type"
               element={
                 <Suspense fallback={<Loader />}>
-                  <Register />
+                  <AuthPage />
                 </Suspense>
               }
             />
 
             <Route
-              path="/login"
+              path="/auth/:type"
               element={
                 <Suspense fallback={<Loader />}>
-                  <Login />
+                  <AuthPage />
                 </Suspense>
               }
             />

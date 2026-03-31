@@ -7,7 +7,7 @@ import Features from "../components/LandingPage/Features";
 import HowItWorks from "../components/LandingPage/HowItWorks";
 import Testimonials from "../components/LandingPage/Testimonials";
 import CTA from "../components/LandingPage/CTA";
-import Footer from "../components/LandingPage/Footer";
+import Footer from "../components/LandingPage/footer/Footer";
 
 const Landingpage = () => {
   // Check if already visited in this tab
@@ -27,7 +27,7 @@ const Landingpage = () => {
   }, [loading]);
 
   return (
-    <div
+    <main
       className={`${
         loading ? "h-[100dvh]" : "min-h-screen"
       } bg-gray-950 text-white overflow-x-hidden relative select-none`}
@@ -49,7 +49,7 @@ const Landingpage = () => {
       <Testimonials />
       <CTA />
       <Footer />
-    </div>
+    </main>
   );
 };
 

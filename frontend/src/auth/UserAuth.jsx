@@ -11,7 +11,7 @@ const UserAuth = () => {
   // it will check it again and again whenever value of token, user and naivagate changes.
   useEffect(() => {
     if (!token || !user) {
-      navigate('/login', { replace: true });
+      navigate('/auth/login', { replace: true });
     }
   }, [token, user, navigate]);
 
