@@ -4,7 +4,7 @@ import { useProject } from "../contexts/project.context";
 import {
   initializeSocket,
   receiveMessage,
-  sendMessage,
+  sendMessage
 } from "../config/socket";
 import { getWebContainer } from "../config/webContainer";
 import ResponsiveLayout from "../components/ProjectPage/ResponsiveLayout";
@@ -25,64 +25,79 @@ const Project = () => {
     if (currentProject?.fileTree) {
       setFileTree(currentProject.fileTree);
     }
-  }, [currentProject?.fileTree]);
+  }, [currentProject]);
 
   // Load WebContainer once
   useEffect(() => {
+    let isMounted = true;
     if (!webContainer) {
-      getWebContainer().then((container) => setWebContainer(container));
+      getWebContainer().then((container) => {
+        if (isMounted) setWebContainer(container);
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [webContainer]);
 
   // Setup Socket for messages
   useEffect(() => {
     if (!currentProject?._id) return;
+
     const socket = initializeSocket(currentProject._id);
 
     const receiveHandler = (data) => {
       try {
         const { senderName, message } = data;
-        if (senderName === "AI") {
-          if (message?.fileTree) setFileTree(message.fileTree);
-          setMessages((prev) => [
-            ...prev,
-            { ...data, message: message?.text || "" },
-          ]);
-        } else {
-          setMessages((prev) => [...prev, data]);
-        }
+
+        setMessages((prev) => {
+          if (senderName === "AI") {
+            if (message?.fileTree) setFileTree(message.fileTree);
+            return [
+              ...prev,
+              { ...data, message: message?.text || "" },
+            ];
+          }
+          return [...prev, data];
+        });
       } catch (err) {
         console.error("Invalid message:", data, err);
       }
     };
 
     const cleanup = receiveMessage("project-message", receiveHandler);
+
     return () => {
       cleanup?.();
-      socket.connected && socket.disconnect();
+      if (socket?.connected) socket.disconnect();
     };
   }, [currentProject?._id]);
 
   // Mount file structure
   useEffect(() => {
-    if (!webContainer || !fileTree) return;
-    webContainer.mount(fileTree);
+    if (webContainer && fileTree) {
+      webContainer.mount(fileTree);
+    }
   }, [webContainer, fileTree]);
 
   // Teardown previous instance
   useEffect(() => {
-    return () => webContainer?.teardown?.();
+    return () => {
+      webContainer?.teardown?.();
+    };
   }, [webContainer]);
 
   // Send message
   const handleSend = useCallback(() => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || !currentUser?._id) return;
+
     const msg = {
       senderId: currentUser._id,
       senderName: currentUser.username,
       message: inputMessage.trim(),
       timestamp: new Date().toISOString(),
     };
+
     setMessages((prev) => [...prev, msg]);
     setInputMessage("");
     sendMessage("project-message", msg);

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, memo, useRef } from "react";
 import axiosInstance from "../../../config/axios";
 import { useProject } from "../../../contexts/project.context";
 import FileTree from "./FileTree";
@@ -11,6 +11,9 @@ const CodeEditor = ({ fileTree, webContainer }) => {
   // context api
   const { project } = useProject();
 
+  // refs
+  const openFilesRef = useRef([]);
+
   // state variable
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
@@ -21,6 +24,11 @@ const CodeEditor = ({ fileTree, webContainer }) => {
   const [activeTab, setActiveTab] = useState("code");
   const [isRunning, setIsRunning] = useState(false);
   const [showFiles, setShowFiles] = useState(false);
+
+  // keep ref in sync
+  useEffect(() => {
+    openFilesRef.current = openFiles;
+  }, [openFiles]);
 
   // Flatten project file tree
   const fileContentMap = useMemo(() => {
@@ -59,58 +67,57 @@ const CodeEditor = ({ fileTree, webContainer }) => {
   }, [debouncedSave]);
 
   // open file
-  const openFile = useCallback(
-    (filePath) => {
-      if (!openFiles.includes(filePath)) {
-        setOpenFiles((prev) => [...prev, filePath]);
-      }
-      setActiveFile(filePath);
-      setCode(modifiedFiles[filePath] ?? fileContentMap[filePath] ?? "");
-      setShowFiles(false); // NEW → close drawer after file select
-    },
-    [openFiles, fileContentMap, modifiedFiles]
-  );
+  const openFile = useCallback((filePath) => {
+    setOpenFiles((prev) => {
+      if (prev.includes(filePath)) return prev;
+      return [...prev, filePath];
+    });
+
+    setActiveFile(filePath);
+    setCode((prev) => prev ?? "");
+    setShowFiles(false);
+  }, []);
+
+  // sync code when activeFile changes
+  useEffect(() => {
+    if (!activeFile) return;
+    setCode(modifiedFiles[activeFile] ?? fileContentMap[activeFile] ?? "");
+  }, [activeFile, modifiedFiles, fileContentMap]);
 
   // close tab
-  const closeFile = useCallback(
-    (filePath) => {
-      setOpenFiles((prev) => {
-        const updated = prev.filter((f) => f !== filePath);
+  const closeFile = useCallback((filePath) => {
+    setOpenFiles((prev) => {
+      const updated = prev.filter((f) => f !== filePath);
 
-        if (activeFile === filePath) {
-          if (updated.length > 0) {
-            const next = updated[0];
-            setActiveFile(next);
-            setCode(modifiedFiles[next] ?? fileContentMap[next] ?? "");
-          } else {
-            setActiveFile(null);
-            setCode("");
-          }
+      if (activeFile === filePath) {
+        if (updated.length > 0) {
+          const next = updated[0];
+          setActiveFile(next);
+        } else {
+          setActiveFile(null);
+          setCode("");
         }
+      }
 
-        return updated;
-      });
-    },
-    [activeFile, modifiedFiles, fileContentMap]
-  );
+      return updated;
+    });
+  }, [activeFile]);
 
   // on update code call debouncedSave function
-  const updateCode = useCallback(
-    (path, newCode) => {
-      const safe = newCode ?? "";
-      setCode(safe);
-      setModifiedFiles((prev) => ({
-        ...prev,
-        [path]: safe,
-      }));
+  const updateCode = useCallback((path, newCode) => {
+    const safe = newCode ?? "";
+    setCode(safe);
 
-      debouncedSave(path, safe);
-    },
-    [debouncedSave]
-  );
+    setModifiedFiles((prev) => ({
+      ...prev,
+      [path]: safe,
+    }));
+
+    debouncedSave(path, safe);
+  }, [debouncedSave]);
 
   // run webcontainer
-  const runProject = async () => {
+  const runProject = useCallback(async () => {
     if (!webContainer) return;
 
     setIsRunning(true);
@@ -145,7 +152,7 @@ const CodeEditor = ({ fileTree, webContainer }) => {
     } catch (err) {
       onError(err);
     }
-  };
+  }, [webContainer]);
 
   return (
     <main className="h-full w-full flex flex-col md:flex-row bg-transparent text-gray-300 overflow-hidden">
@@ -224,4 +231,4 @@ const CodeEditor = ({ fileTree, webContainer }) => {
   );
 };
 
-export default CodeEditor;
+export default memo(CodeEditor);

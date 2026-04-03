@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import PageLoader from "../components/LandingPage/PageLoader";
+import PageLoader from "../components/PageLoader";
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/LandingPage/Header";
 import Hero from "../components/LandingPage/Hero";

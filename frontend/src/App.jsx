@@ -8,7 +8,7 @@ const Project = lazy(() => import("./pages/Project"));
 const NotFound = lazy(() => import("./components/NotFound"));
 
 // Authentication
-import Loader from "./components/LoadingAnimation";
+import Loader from "./components/PageLoader";
 import UserAuth from "./auth/UserAuth";
 
 // Context API
@@ -24,16 +24,7 @@ const App = () => {
             {/* Landing page loads immediately */}
             <Route path="/" element={<Landingpage />} />
 
-            {/* Lazy-loaded + public */}
-            <Route
-              path="/auth/:type"
-              element={
-                <Suspense fallback={<Loader />}>
-                  <AuthPage />
-                </Suspense>
-              }
-            />
-
+            {/* auth route */}
             <Route
               path="/auth/:type"
               element={

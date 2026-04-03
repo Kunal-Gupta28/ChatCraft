@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { Play, Loader2, Folder } from "lucide-react";
 import FileTab from "./FileTab";
 
@@ -13,11 +14,27 @@ const TabsBar = ({
   onRun,
   setShowFiles,
 }) => {
+
+  const handleShowFiles = useCallback(() => {
+    setShowFiles(true);
+  }, [setShowFiles]);
+
+  const handleSelectTab = useCallback((tab) => {
+    setActiveTab(tab);
+  }, [setActiveTab]);
+
+  const handleRun = useCallback(() => {
+    if (!isRunning) onRun();
+  }, [isRunning, onRun]);
+
+  const isPreviewDisabled = !iframeUrl || isRunning;
+
   return (
     <div className="h-[55px] flex items-center justify-between bg-gray-900/50 border-b border-gray-700">
       {/* Folder icon for visible for mobile and tablet */}
       <button
-        onClick={() => setShowFiles(true)}
+        onClick={handleShowFiles}
+        aria-label="Open file explorer"
         className="md:hidden ml-2 h-[80%] w-[40px] flex items-center justify-center
         bg-gray-700/80 hover:bg-gray-600 text-gray-200 border border-gray-600
         rounded-lg transition"
@@ -42,7 +59,7 @@ const TabsBar = ({
       {/* code and preview button*/}
       <div className="flex items-center justify-center h-[80%] bg-gray-800/60 border border-gray-700 rounded-full mx-3 overflow-hidden">
         <button
-          onClick={() => setActiveTab("code")}
+          onClick={() => handleSelectTab("code")}
           className={`px-4 py-2.5 ${
             activeTab === "code" ? "bg-gray-700 text-white" : "text-gray-400"
           }`}
@@ -51,13 +68,13 @@ const TabsBar = ({
         </button>
 
         <button
-          disabled={!iframeUrl || isRunning}
-          onClick={() => iframeUrl && setActiveTab("preview")}
+          disabled={isPreviewDisabled}
+          onClick={() => !isPreviewDisabled && handleSelectTab("preview")}
           className={`px-4 py-2.5 transition
             ${
               activeTab === "preview"
                 ? "bg-gray-700 text-white"
-                : !iframeUrl || isRunning
+                : isPreviewDisabled
                 ? "text-gray-500 cursor-not-allowed opacity-40"
                 : "text-gray-400 hover:text-gray-200 cursor-pointer"
             }
@@ -69,8 +86,9 @@ const TabsBar = ({
 
       {/* run button */}
       <button
-        onClick={onRun}
+        onClick={handleRun}
         disabled={isRunning}
+        aria-label="Run project"
         className={`m-2 flex items-center justify-center gap-1.5 w-[40px] md:w-[80px] h-[80%] rounded-md 
           ${
             isRunning
@@ -83,7 +101,7 @@ const TabsBar = ({
           <Loader2 className="animate-spin" size={16} />
         ) : (
           <>
-            <Play size={16} fill="white" />{" "}
+            <Play size={16} fill="white" />
             <span className="hidden md:block">Run</span>
           </>
         )}
@@ -92,4 +110,4 @@ const TabsBar = ({
   );
 };
 
-export default TabsBar;
+export default memo(TabsBar);

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, memo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../config/axios";
 import { useUser } from "../contexts/user.context";
@@ -22,6 +22,11 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 🔥 IMPORTANT FIX → reset form when route changes
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
+
   const fields = useMemo(
     () => (isLogin ? ["email", "password"] : ["username", "email", "password"]),
     [isLogin]
@@ -35,6 +40,9 @@ const AuthPage = () => {
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
+
+      if (loading) return; // prevent double submit
+
       setError("");
       setLoading(true);
 
@@ -61,14 +69,14 @@ const AuthPage = () => {
         setLoading(false);
       }
     },
-    [form, isLogin, navigate, setUser]
+    [form, isLogin, navigate, setUser, loading]
   );
 
-  const inputType = (field) => {
+  const inputType = useCallback((field) => {
     if (field === "password") return "password";
     if (field === "email") return "email";
     return "text";
-  };
+  }, []);
 
   return (
     <div className="h-[100dvh] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 select-none">
@@ -76,6 +84,7 @@ const AuthPage = () => {
         
         <button
           onClick={() => navigate("/")}
+          aria-label="Go back"
           className="mb-4 text-blue-400 text-2xl hover:text-blue-300 transition"
         >
           &larr;
@@ -104,6 +113,7 @@ const AuthPage = () => {
                 value={form[field]}
                 onChange={handleChange}
                 required
+                autoComplete={field}
                 placeholder={`Enter your ${field}`}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-800 border-gray-700 text-white"
               />
@@ -140,4 +150,4 @@ const AuthPage = () => {
   );
 };
 
-export default AuthPage;
+export default memo(AuthPage);

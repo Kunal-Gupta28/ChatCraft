@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 const PreviewPane = ({ iframeUrl }) => {
 
   // if iframe Url is not present then show waiting for server...
@@ -12,12 +14,14 @@ const PreviewPane = ({ iframeUrl }) => {
 
     //  if iframe url display it 
     <iframe
+      key={iframeUrl}
       src={iframeUrl}
       sandbox="allow-scripts allow-same-origin"
       className="w-full h-full border-0"
       title="Project Preview"
+      loading="lazy"
     />
   );
 };
 
-export default PreviewPane;
+export default memo(PreviewPane);

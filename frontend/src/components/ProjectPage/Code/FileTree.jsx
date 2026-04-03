@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { Folder, FolderOpen, FileCode2 } from "lucide-react";
 
 const FileTree = ({
@@ -12,22 +13,26 @@ const FileTree = ({
   const isEmpty = !tree || Object.keys(tree).length === 0;
 
   /** Toggle folder */
-  const toggleFolder = (path) => {
+  const toggleFolder = useCallback((path) => {
     if (isPreview) return;
+
     setOpenFolders((prev) => ({
       ...prev,
       [path]: !prev[path],
     }));
-  };
+  }, [isPreview, setOpenFolders]);
 
   /** Render a file */
-  const FileItem = ({ name, fullPath }) => {
+  const FileItem = memo(({ name, fullPath }) => {
     const isActive = activeFile === fullPath;
+
+    const handleClick = useCallback(() => {
+      if (!isPreview) onFileSelect(fullPath);
+    }, [isPreview, onFileSelect, fullPath]);
 
     return (
       <div
-        key={fullPath}
-        onClick={!isPreview ? () => onFileSelect(fullPath) : undefined}
+        onClick={handleClick}
         className={`flex items-center gap-2 py-1 px-2 rounded-md text-sm truncate transition-colors select-none
           ${
             isActive
@@ -41,17 +46,21 @@ const FileTree = ({
         <span className="truncate">{name}</span>
       </div>
     );
-  };
+  });
 
   /** Render a folder */
-  const FolderItem = ({ name, value, fullPath }) => {
+  const FolderItem = memo(({ name, value, fullPath }) => {
     const isOpen = openFolders[fullPath];
 
+    const handleToggle = useCallback(() => {
+      toggleFolder(fullPath);
+    }, [toggleFolder, fullPath]);
+
     return (
-      <div key={fullPath}>
+      <div>
         {/* Folder header */}
         <div
-          onClick={!isPreview ? () => toggleFolder(fullPath) : undefined}
+          onClick={handleToggle}
           className={`flex items-center gap-2 py-1 px-2 rounded-md text-sm truncate select-none
             ${isPreview ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-700/30 cursor-pointer"}
             text-gray-300
@@ -73,11 +82,11 @@ const FileTree = ({
         )}
       </div>
     );
-  };
+  });
 
   /** Recursively render tree structure */
-  const renderTree = (node, base = "") =>
-    Object.entries(node).map(([name, value]) => {
+  const renderTree = useCallback((node, base = "") => {
+    return Object.entries(node).map(([name, value]) => {
       const fullPath = base ? `${base}/${name}` : name;
 
       return value.file ? (
@@ -91,6 +100,7 @@ const FileTree = ({
         />
       );
     });
+  }, [FileItem, FolderItem]);
 
   return (
     <aside className="h-full w-full border-r border-gray-700 bg-gray-900/40 overflow-y-auto p-3">
@@ -111,4 +121,4 @@ const FileTree = ({
   );
 };
 
-export default FileTree;
+export default memo(FileTree);

@@ -55,7 +55,6 @@ const Home = () => {
   // create project
   const handleCreateProject = useCallback(async () => {
     if (!projectName.trim()) return;
-
     setLoading(true);
     setError(null);
     setSuccess(false);

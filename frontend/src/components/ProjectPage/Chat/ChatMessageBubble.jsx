@@ -1,10 +1,20 @@
+import { memo, useMemo } from "react";
+
 const ChatMessageBubble = ({ msg, isMine }) => {
 
   // time stamp
-  const formatTimestamp = (isoString) => {
-    const date = new Date(isoString);
+  const formattedTime = useMemo(() => {
+    if (!msg?.timestamp) return "";
+    const date = new Date(msg.timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  }, [msg?.timestamp]);
+
+  const messageContent = useMemo(() => {
+    if (typeof msg.message === "string") return msg.message;
+    return JSON.stringify(msg.message, null, 2);
+  }, [msg.message]);
+
+  const isAI = msg.senderName === "AI";
 
   return (
     <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
@@ -21,25 +31,23 @@ const ChatMessageBubble = ({ msg, isMine }) => {
         </strong>
 
         {/* if message from AI */}
-        {msg.senderName === "AI" ? (
+        {isAI ? (
           <div className="prose prose-sm prose-invert max-w-none text-sm break-words leading-4">
-            {msg.message}
+            {messageContent}
           </div>
         ) : (
           <p className="text-sm break-words leading-4">
-            {typeof msg.message === "string"
-              ? msg.message
-              : JSON.stringify(msg.message, null, 2)}
+            {messageContent}
           </p>
         )}
 
         {/* show time stamp */}
         <time className="block text-xs text-right mt-1 opacity-60 select-none">
-          {formatTimestamp(msg.timestamp)}
+          {formattedTime}
         </time>
       </div>
     </div>
   );
 };
 
-export default ChatMessageBubble;
+export default memo(ChatMessageBubble);

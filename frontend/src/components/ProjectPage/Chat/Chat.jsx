@@ -1,36 +1,44 @@
-import { useState, useEffect, useRef } from "react";
-import Collaborators from "./Collaborators";
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from "react";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 
-const Chat = ({ messages, handleSend, inputMessage, setInputMessage }) => {
-  // state variable
-  const [showUsers, setShowUsers] = useState(false);
+// lazy load
+const Collaborators = lazy(() => import("./Collaborators"));
 
-  // use ref
+const Chat = ({ messages, handleSend, inputMessage, setInputMessage }) => {
+  const [showUsers, setShowUsers] = useState(false);
   const chatEndRef = useRef(null);
+  const prevLengthRef = useRef(0);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > prevLengthRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevLengthRef.current = messages.length;
   }, [messages]);
 
-  // send message on pressing enter
-  const handleKeyPress = (e) => {
+  const handleKeyPress = useCallback((e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
+  }, [handleSend]);
 
   return (
     <div className="w-full h-full flex flex-col bg-transparent backdrop-blur-md">
-      {/* if showUser is true then show collaborators  if not then show chat box */}
       {showUsers ? (
-        <Collaborators setShowUsers={setShowUsers} />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-full text-gray-400">
+              Loading collaborators...
+            </div>
+          }
+        >
+          <Collaborators setShowUsers={setShowUsers} />
+        </Suspense>
       ) : (
         <>
-          {/* chat box */}
           <ChatHeader setShowUsers={setShowUsers} />
           <ChatMessages messages={messages} chatEndRef={chatEndRef} />
           <ChatInput

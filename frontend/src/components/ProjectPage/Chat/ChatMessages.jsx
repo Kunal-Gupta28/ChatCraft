@@ -1,8 +1,18 @@
+import { memo, useMemo } from "react";
 import ChatMessageBubble from "./ChatMessageBubble";
 import { useUser } from "../../../contexts/user.context";
 
 const ChatMessages = ({ messages, chatEndRef }) => {
   const { user: currentUser } = useUser();
+
+  const currentUserId = currentUser?._id;
+
+  const renderedMessages = useMemo(() => {
+    return messages.map((msg) => ({
+      ...msg,
+      isMine: msg.senderId === currentUserId,
+    }));
+  }, [messages, currentUserId]);
 
   return (
     <>
@@ -17,11 +27,11 @@ const ChatMessages = ({ messages, chatEndRef }) => {
           </div>
         ) : (
           // chat messages
-          messages.map((msg, index) => (
+          renderedMessages.map((msg, index) => (
             <ChatMessageBubble
-              key={index}
+              key={msg._id || index}
               msg={msg}
-              isMine={msg.senderId === currentUser._id}
+              isMine={msg.isMine}
             />
           ))
         )}
@@ -31,4 +41,4 @@ const ChatMessages = ({ messages, chatEndRef }) => {
   );
 };
 
-export default ChatMessages;
+export default memo(ChatMessages);

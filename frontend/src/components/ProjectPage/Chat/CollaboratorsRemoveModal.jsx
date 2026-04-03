@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { Trash2 } from "lucide-react";
 
 const CollaboratorsRemoveModal = ({
@@ -5,6 +6,11 @@ const CollaboratorsRemoveModal = ({
   setConfirmRemove,
   handleConfirmRemove,
 }) => {
+
+  const handleCancel = useCallback(() => {
+    setConfirmRemove({ show: false, userId: null, username: "" });
+  }, [setConfirmRemove]);
+
   return (
     <>
       {/* Remove Collaborator Confirmation Modal */}
@@ -33,9 +39,7 @@ const CollaboratorsRemoveModal = ({
 
               {/* cancel button */}
               <button
-                onClick={() =>
-                  setConfirmRemove({ show: false, userId: null, username: "" })
-                }
+                onClick={handleCancel}
                 className="flex-1 py-2 rounded-lg text-gray-200 border border-gray-700 hover:bg-gray-800 transition-colors duration-200 cursor-pointer"
               >
                 Cancel
@@ -59,4 +63,4 @@ const CollaboratorsRemoveModal = ({
   );
 };
 
-export default CollaboratorsRemoveModal;
+export default memo(CollaboratorsRemoveModal);

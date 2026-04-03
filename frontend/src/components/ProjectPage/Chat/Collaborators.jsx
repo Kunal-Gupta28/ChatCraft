@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import axiosInstance from "../../../config/axios";
 import { useUser } from "../../../contexts/user.context";
 import { useProject } from "../../../contexts/project.context";
@@ -13,6 +13,7 @@ const Collaborators = ({ setShowUsers }) => {
   // context api
   const { project, setProject } = useProject();
   const { user: currentUser } = useUser();
+
   // state variables
   const [allUsers, setAllUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -26,7 +27,7 @@ const Collaborators = ({ setShowUsers }) => {
   });
 
   // Fetch all users from server and save it in setAllUser
-  const fetchAllUsers = async () => {
+  const fetchAllUsers = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/all");
       setAllUsers(res.data.allUsers);
@@ -34,23 +35,24 @@ const Collaborators = ({ setShowUsers }) => {
     } catch (error) {
       console.error("Error fetching users:", error);
     }
-  };
+  }, []);
 
   // edit alreadyAdded and existing user list
-  const selectedUsersHandler = (user) => {
+  const selectedUsersHandler = useCallback((user) => {
     const alreadyAdded = project?.users?.some((u) => u._id === user._id);
     if (alreadyAdded) return;
 
-    const exists = selectedUsers.some((u) => u._id === user._id);
-    if (exists) {
-      setSelectedUsers(selectedUsers.filter((u) => u._id !== user._id));
-    } else {
-      setSelectedUsers([...selectedUsers, user]);
-    }
-  };
+    setSelectedUsers((prev) => {
+      const exists = prev.some((u) => u._id === user._id);
+      if (exists) {
+        return prev.filter((u) => u._id !== user._id);
+      }
+      return [...prev, user];
+    });
+  }, [project?.users]);
 
   // Add collaborator in project
-  const addCollaborator = async () => {
+  const addCollaborator = useCallback(async () => {
     if (!selectedUsers.length) return;
 
     const userIdArray = selectedUsers.map((u) => u._id);
@@ -70,10 +72,10 @@ const Collaborators = ({ setShowUsers }) => {
     } catch (error) {
       console.error("Error adding collaborator:", error);
     }
-  };
+  }, [selectedUsers, project?._id, setProject]);
 
   // remove collaborator from project
-  const removeCollaborator = async (userId) => {
+  const removeCollaborator = useCallback(async (userId) => {
     try {
       const res = await axiosInstance.put("/project/remove-user", {
         data: {
@@ -92,25 +94,30 @@ const Collaborators = ({ setShowUsers }) => {
     } catch (error) {
       console.error("Error removing collaborator:", error);
     }
-  };
+  }, [project?._id, setProject]);
 
   // Confirms and executes removal
-  const handleConfirmRemove = () => {
+  const handleConfirmRemove = useCallback(() => {
     if (confirmRemove.userId) {
       removeCollaborator(confirmRemove.userId);
     }
-  };
+  }, [confirmRemove.userId, removeCollaborator]);
 
   // Filters members which are in a project
-  const filteredProjectUsers =
-    project?.users?.filter((user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+  const filteredProjectUsers = useMemo(() => {
+    return (
+      project?.users?.filter((user) =>
+        user.username.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || []
+    );
+  }, [project?.users, searchTerm]);
 
   // filter users
-  const filteredAllUsers = allUsers.filter((user) =>
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAllUsers = useMemo(() => {
+    return allUsers.filter((user) =>
+      user.username.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [allUsers, searchQuery]);
 
   return (
     <>

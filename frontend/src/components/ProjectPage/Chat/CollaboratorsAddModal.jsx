@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { X, Search, Check, Users } from "lucide-react";
 
 const CollaboratorsAddModal = ({
@@ -11,6 +12,29 @@ const CollaboratorsAddModal = ({
   setSearchQuery,
   projectUsers,
 }) => {
+
+  const handleClose = useCallback(() => {
+    setShowModal(false);
+    setSelectedUsers([]);
+    setSearchQuery("");
+  }, [setShowModal, setSelectedUsers, setSearchQuery]);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchQuery(e.target.value);
+  }, [setSearchQuery]);
+
+  const selectedIds = useMemo(
+    () => new Set(selectedUsers.map((u) => u._id)),
+    [selectedUsers]
+  );
+
+  const projectUserIds = useMemo(
+    () => new Set(projectUsers?.map((u) => u._id)),
+    [projectUsers]
+  );
+
+  const isDisabled = selectedUsers.length === 0;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center animate-fadeIn select-none">
       {/* Add Collaborator Modal */}
@@ -25,11 +49,7 @@ const CollaboratorsAddModal = ({
 
           {/* close button */}
           <button
-            onClick={() => {
-              setShowModal(false);
-              setSelectedUsers([]);
-              setSearchQuery("");
-            }}
+            onClick={handleClose}
             className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-all cursor-pointer"
           >
             <X size={20} />
@@ -49,7 +69,7 @@ const CollaboratorsAddModal = ({
               type="text"
               placeholder="Search users..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-gray-800/80 text-gray-200 placeholder-gray-500 border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition-all duration-200 hover:border-gray-600"
             />
           </div>
@@ -57,12 +77,8 @@ const CollaboratorsAddModal = ({
           {filteredAllUsers.length > 0 ? (
             <ul className="space-y-2">
               {filteredAllUsers.map((user) => {
-                const isSelected = selectedUsers.some(
-                  (u) => u._id === user._id
-                );
-                const alreadyAdded = projectUsers?.some(
-                  (u) => u._id === user._id
-                );
+                const isSelected = selectedIds.has(user._id);
+                const alreadyAdded = projectUserIds.has(user._id);
 
                 const base =
                   "flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-200";
@@ -92,6 +108,7 @@ const CollaboratorsAddModal = ({
                         <img
                           src={user.profilePic}
                           alt={user.username}
+                          loading="lazy"
                           className={`w-10 h-10 rounded-full object-cover border border-gray-700 ${
                             alreadyAdded ? "grayscale" : ""
                           }`}
@@ -130,9 +147,9 @@ const CollaboratorsAddModal = ({
         <footer className="p-5 border-t border-gray-800">
           <button
             onClick={addCollaborator}
-            disabled={selectedUsers.length === 0}
+            disabled={isDisabled}
             className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
-              selectedUsers.length === 0
+              isDisabled
                 ? "bg-gray-700 opacity-60 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-[1.03] shadow-lg cursor-pointer"
             }`}
@@ -145,4 +162,4 @@ const CollaboratorsAddModal = ({
   );
 };
 
-export default CollaboratorsAddModal;
+export default memo(CollaboratorsAddModal);

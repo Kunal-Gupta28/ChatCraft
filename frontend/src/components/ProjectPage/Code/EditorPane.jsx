@@ -1,6 +1,15 @@
+import { memo, useCallback } from "react";
 import MarkdownWithCode from "./MarkdownWithCode";
 
 const EditorPane = ({ activeFile, code, updateCode }) => {
+
+  const handleChange = useCallback(
+    (val) => {
+      if (!activeFile) return;
+      updateCode(activeFile, val);
+    },
+    [activeFile, updateCode]
+  );
 
   // if active file is not present then show text
   if (!activeFile)
@@ -15,10 +24,10 @@ const EditorPane = ({ activeFile, code, updateCode }) => {
       <MarkdownWithCode
         fileName={activeFile}
         code={code}
-        onChange={(val) => updateCode(activeFile, val)}
+        onChange={handleChange}
       />
     </div>
   );
 };
 
-export default EditorPane;
+export default memo(EditorPane);
