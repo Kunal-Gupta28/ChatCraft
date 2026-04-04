@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const  cookieParser =  require("cookie-parser");
 const userRouter = require("./routes/user.router");
 const projectRouter = require("./routes/project.route");
 const aiRouter = require("./routes/ai.route");
@@ -8,6 +9,7 @@ const cors = require("cors");
 connectToDB();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({

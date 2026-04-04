@@ -15,21 +15,21 @@ const AuthPage = () => {
       isLogin
         ? { email: "", password: "" }
         : { username: "", email: "", password: "" },
-    [isLogin]
+    [isLogin],
   );
 
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔥 IMPORTANT FIX → reset form when route changes
+  //  IMPORTANT FIX → reset form when route changes
   useEffect(() => {
     setForm(initialForm);
   }, [initialForm]);
 
   const fields = useMemo(
     () => (isLogin ? ["email", "password"] : ["username", "email", "password"]),
-    [isLogin]
+    [isLogin],
   );
 
   const handleChange = useCallback((e) => {
@@ -37,29 +37,25 @@ const AuthPage = () => {
     setForm((prev) => ({ ...prev, [id]: value }));
   }, []);
 
+  // handle submit
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
 
-      if (loading) return; // prevent double submit
+      if (loading) return;
 
       setError("");
       setLoading(true);
 
       try {
         const endpoint = isLogin ? "/login" : "/register";
-        const { data } = await axiosInstance.post(endpoint, form);
-
-        const { user, token } = data;
-
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-
+        const response = await axiosInstance.post(endpoint, form);
+        const { user } = response.data;
         setUser(user);
         navigate("/home");
       } catch (err) {
         const message =
-          err?.response?.data?.message ||
+          err?.response?.data?.error ||
           (isLogin
             ? "Invalid credentials. Please try again."
             : "Registration failed. Try again.");
@@ -69,7 +65,7 @@ const AuthPage = () => {
         setLoading(false);
       }
     },
-    [form, isLogin, navigate, setUser, loading]
+    [form, isLogin, navigate, setUser, loading],
   );
 
   const inputType = useCallback((field) => {
@@ -81,7 +77,6 @@ const AuthPage = () => {
   return (
     <div className="h-[100dvh] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 select-none">
       <div className="bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-md">
-        
         <button
           onClick={() => navigate("/")}
           aria-label="Go back"
@@ -137,9 +132,7 @@ const AuthPage = () => {
           {isLogin ? "Don't have an account?" : "Already have an account?"}
 
           <button
-            onClick={() =>
-              navigate(isLogin ? "/auth/register" : "/auth/login")
-            }
+            onClick={() => navigate(isLogin ? "/auth/register" : "/auth/login")}
             className="text-blue-400 hover:text-blue-300 ml-2"
           >
             {isLogin ? "Register" : "Login"}

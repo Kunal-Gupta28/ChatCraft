@@ -5,13 +5,17 @@ module.exports.isLoggedIn = async (req, res, next) => {
   try {
     // Get token from cookies or Authorization header
     const authHeader = req.header("Authorization");
-    const token = req.cookies?.token || (authHeader && authHeader.split(" ")[1]);
+    const token =
+      req.cookies?.token || (authHeader && authHeader.split(" ")[1]);
 
     if (!token) {
-      return res.status(401).json({ error: "Access denied. No token provided." });
+      return res
+        .status(401)
+        .json({ error: "Access denied. No token provided." });
     }
+
     // Check if token is blacklisted
-    const isBlackListed = await redisClient.get(token);
+    const isBlackListed = await redisClient.get(`bl_${token}`);
     if (isBlackListed) {
       res.clearCookie("token");
       return res.status(401).json({ error: "Unauthorized User" });
@@ -25,7 +29,9 @@ module.exports.isLoggedIn = async (req, res, next) => {
     } catch (err) {
       res.clearCookie("token");
       if (err.name === "TokenExpiredError") {
-        return res.status(401).json({ error: "Session expired. Please log in again." });
+        return res
+          .status(401)
+          .json({ error: "Session expired. Please log in again." });
       }
       return res.status(401).json({ error: "Invalid token." });
     }

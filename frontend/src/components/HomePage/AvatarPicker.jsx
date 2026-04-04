@@ -35,6 +35,7 @@ const AvatarPicker = ({ open, onClose }) => {
     setSelected(avatar);
   }, []);
 
+  // save handler
   const handleSave = useCallback(async () => {
     if (!selected || loading) return;
     try {
@@ -43,10 +44,10 @@ const AvatarPicker = ({ open, onClose }) => {
         avatar: selected,
         userId: user._id,
       });
+      console.log(res)
 
       if (res.status === 200) {
         setUser(res.data.user);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
         setSelected(null);
         onClose();
       }

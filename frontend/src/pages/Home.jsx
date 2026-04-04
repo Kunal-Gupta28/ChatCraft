@@ -1,4 +1,11 @@
-import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  lazy,
+  Suspense,
+} from "react";
 import { motion } from "framer-motion";
 import axiosInstance from "../config/axios";
 import { useUser } from "../contexts/user.context";
@@ -17,7 +24,7 @@ const AvatarPicker = lazy(() => import("../components/HomePage/AvatarPicker"));
 
 const Home = () => {
   // context api
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
   // state variables
   const [loading, setLoading] = useState(false);
@@ -36,6 +43,20 @@ const Home = () => {
     open: false,
     projectId: null,
   });
+
+  // reload user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data } = await axiosInstance.get("/getMe");
+        setUser(data.user);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   // fetching all projects and save it in allProject
   const fetchAllProjects = useCallback(async () => {
@@ -60,16 +81,19 @@ const Home = () => {
     setSuccess(false);
 
     try {
-      await axiosInstance.post("/project/create", {
+      const res = await axiosInstance.post("/project/create", {
         name: projectName,
       });
 
-      setSuccess(true);
-      setShowPopup(false);
-      setProjectName("");
-      fetchAllProjects();
+      console.log(res.data)
+      if (res.status === 201) {
+        setSuccess(true);
+        setShowPopup(false);
+        setProjectName("");
+        fetchAllProjects();
 
-      setTimeout(() => setSuccess(false), 2500);
+        setTimeout(() => setSuccess(false), 2500);
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -78,20 +102,23 @@ const Home = () => {
   }, [projectName, fetchAllProjects]);
 
   // rename the project
-  const handleReanmeProject = useCallback(async (projectId, newName) => {
-    try {
-      const response = await axiosInstance.put("/project/rename", {
-        projectId,
-        newName,
-      });
+  const handleReanameProject = useCallback(
+    async (projectId, newName) => {
+      try {
+        const response = await axiosInstance.put("/project/rename", {
+          projectId,
+          newName,
+        });
 
-      if (response.status === 200) {
-        fetchAllProjects();
+        if (response.status === 200) {
+          fetchAllProjects();
+        }
+      } catch (error) {
+        setError(error.response?.data?.message || error.message);
       }
-    } catch (error) {
-      setError(error.response?.data?.message || error.message);
-    }
-  }, [fetchAllProjects]);
+    },
+    [fetchAllProjects],
+  );
 
   // delete protect
   const handleDeleteProject = useCallback(async (projectId) => {
@@ -110,9 +137,7 @@ const Home = () => {
   // filter project by input
   const filteredProjects = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return allProject.filter((p) =>
-      p.name.toLowerCase().includes(term),
-    );
+    return allProject.filter((p) => p.name.toLowerCase().includes(term));
   }, [allProject, searchTerm]);
 
   return (
@@ -168,7 +193,7 @@ const Home = () => {
         open={renamePopup.open}
         onClose={() => setRenamePopup({ open: false, projectId: null })}
         onConfirm={(name) => {
-          handleReanmeProject(renamePopup.projectId, name);
+          handleReanameProject(renamePopup.projectId, name);
           setRenamePopup({ open: false, projectId: null });
         }}
       />

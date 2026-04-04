@@ -6,9 +6,9 @@ import { useUser } from "../../contexts/user.context";
 
 const Header = ({ setShowPopup, setShowAvatarPopup }) => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
-  const username = user?.username || "User";
+  const username = user?.username || "";
 
   // user's name first letter
   const firstLetter = useMemo(
@@ -26,17 +26,17 @@ const Header = ({ setShowPopup, setShowAvatarPopup }) => {
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
-      localStorage.clear();
-      navigate("/auth/login");
+      setUser(null);
+      navigate("/auth/login", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, setUser]);
 
   // new project popup
   const openNewProjectPopup = useCallback(() => {
     setShowPopup(true);
   }, [setShowPopup]);
 
-  // avatar popup 
+  // avatar popup
   const openAvatarPopup = useCallback(() => {
     setShowAvatarPopup(true);
   }, [setShowAvatarPopup]);

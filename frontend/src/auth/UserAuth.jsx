@@ -5,20 +5,14 @@ import { useUser } from '../contexts/user.context';
 const UserAuth = () => {
   const navigate = useNavigate();
   const { user } = useUser(); 
-  const token = localStorage.getItem('token');
-
-  // navigate to login page if either token or user is missing 
-  // it will check it again and again whenever value of token, user and naivagate changes.
   useEffect(() => {
-    if (!token || !user) {
+    if ( !user) {
       navigate('/auth/login', { replace: true });
     }
-  }, [token, user, navigate]);
+  }, [ user, navigate]);
 
-  // if token and user are missing then return null
-  if (!token || !user) return null;
+  if (!user) return null;
 
-  // outlet is a kind of placeholder were children will take place
   return <Outlet />;
 };
 

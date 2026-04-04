@@ -13,17 +13,24 @@ module.exports.registerController = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    const user = await userService.createUser({ username, email, password });
-    delete user._doc.password;
+    const { user, token } = await userService.createUser({
+      username,
+      email,
+      password,
+    });
 
     if (!user) {
       return res.status(409).json({ error: "User already exists" });
     }
+    // cookie
+    res.cookie("token", token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: "None",
+      maxAge: 1000 * 60 * 60 * 24,
+    });
 
-    const token = await user.generateToken();
-    res
-      .status(201)
-      .json({ message: "user registered sucessfully", user, token });
+    res.status(201).json({ message: "user registered sucessfully", user });
   } catch (error) {
     return res.status(400).json({ "internal error": error });
   }
@@ -38,14 +45,21 @@ module.exports.loginController = async (req, res) => {
   }
   const { email, password } = req.body;
   try {
-    const userdata = await userService.login({ email, password });
+    const { user, token } = await userService.login({ email, password });
 
-    delete userdata.user._doc.password;
-
-    if (!userdata) {
-      return res.status(404).json("user doesn't exist");
+    if (!user || !token) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
-    return res.status(200).json({ user: userdata.user, token: userdata.token });
+
+    // cookie
+    res.cookie("token", token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: "None",
+      maxAge: 1000 * 60 * 60 * 24,
+    });
+
+    return res.status(200).json({ user: user });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -80,7 +94,12 @@ module.exports.setAvatar = async (req, res) => {
 // get all user
 module.exports.getAllUser = async (req, res) => {
   try {
-    const isLoggedInUser = await userModel.find({ email: req.user.email });
+    const isLoggedInUser = await userModel.findOne({ email: req.user.email });
+
+    if (!isLoggedInUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     const allUsers = await userService.getAllUser({
       userId: isLoggedInUser._id,
     });
@@ -90,26 +109,52 @@ module.exports.getAllUser = async (req, res) => {
   }
 };
 
+// get me
+module.exports.getMe = async (req, res) => {
+  try {
+    const user = await userService.getMe({ email: req.user.email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("GetMe Error:", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 // logout
 module.exports.logout = async (req, res) => {
   try {
     const authHeader = req.header("Authorization");
-    const token =
-      req.cookies?.token || (authHeader && authHeader.split(" ")[1]);
+
+    let token;
+
+    if (req.cookies?.token) {
+      token = req.cookies.token;
+    } else if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
 
     if (!token) {
       return res.status(400).json({ error: "No token provided" });
     }
 
-    // Blacklist token in Redis for 24 hours (token expiry should not exceed this)
-    await redisClient.set(token, "Logged Out", "EX", 60 * 60 * 24);
+    // blacklist token
+    await redisClient.set(`bl_${token}`, "1", "EX", 60 * 60 * 24);
 
-    // Clear cookie if used
-    res.clearCookie("token");
+    // clear cookie properly
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
 
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout Error:", error.message);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Something went wrong" });
   }
 };

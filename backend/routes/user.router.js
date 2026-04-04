@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router();
 const { body } = require('express-validator');
-const { registerController, loginController, setAvatar, getAllUser, logout } = require('../controllers/user.controller')
+const { registerController, loginController, setAvatar, getAllUser, logout, getMe } = require('../controllers/user.controller')
 const {isLoggedIn} = require('../middlewares/auth.middleware');
 
 // register routes
@@ -19,6 +19,9 @@ router.post('/login',[
 
 // set avatar
 router.put('/setAvatar',isLoggedIn, setAvatar);
+
+// reload user data
+router.get('/getMe',isLoggedIn, getMe);
 
 // get all user
 router.get('/all', isLoggedIn, getAllUser);

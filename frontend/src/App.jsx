@@ -9,6 +9,7 @@ const NotFound = lazy(() => import("./components/NotFound"));
 
 // Authentication
 import Loader from "./components/PageLoader";
+import ComponentLoader from "./components/LoadingAnimation";
 import UserAuth from "./auth/UserAuth";
 
 // Context API
@@ -48,7 +49,7 @@ const App = () => {
               <Route
                 path="/project"
                 element={
-                  <Suspense fallback={<Loader />}>
+                  <Suspense fallback={<ComponentLoader />}>
                     <Project />
                   </Suspense>
                 }
