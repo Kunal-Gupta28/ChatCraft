@@ -4,6 +4,7 @@ const {
   getAllProjectByUserId,
   addUserToProject,
   removeUserFromProject,
+  getProjectById,
   updateFileTree,
   renameProject,
   deleteProject,
@@ -20,13 +21,19 @@ module.exports.createProject = async (req, res) => {
   }
 
   try {
-    const { name } = req.body;
+    const { projectName } = req.body;
     const isLoggedInUser = await userModel.findOne({ email: req.user.email });
     const userId = isLoggedInUser._id;
-    const newProject = await createProject({ name, userId });
-    return res.status(201).json(newProject);
+    const newProject = await createProject({ projectName, userId });
+    return res.status(201).json({
+      success: true,
+      data: newProject,
+    });
   } catch (error) {
-    return res.status(400).send(error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -35,9 +42,15 @@ module.exports.getAllProject = async (req, res) => {
   try {
     const logInUser = await userModel.findOne({ email: req.user.email });
     const allProject = await getAllProjectByUserId({ userId: logInUser._id });
-    return res.status(200).json({ allProject });
+    return res.status(200).json({
+      success: true,
+      allProject: allProject,
+    });
   } catch (error) {
-    return res.status(400).send(error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -56,9 +69,15 @@ module.exports.addUserToProject = async (req, res) => {
       users,
       userId: isLoggedInUser._id,
     });
-    return res.status(200).json({ updatedProject });
+    return res.status(200).json({
+      success: true,
+      message: "Users added to project successfully"
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -73,9 +92,15 @@ module.exports.removeUserFromProject = async (req, res) => {
   try {
     const { projectId, userId } = req.body;
     const updatedProject = await removeUserFromProject({ projectId, userId });
-    return res.status(200).json({ updatedProject });
+    return res.status(200).json({
+      success: true,
+      message: "User removed from project",
+    });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -87,7 +112,10 @@ module.exports.getProjectById = async (req, res) => {
     const project = await getProjectById({ projectId });
     return res.status(200).json({ project });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -109,7 +137,10 @@ module.exports.updateFileTree = async (req, res) => {
     const updatedContent = updatedProject.fileTree[updatedfile].file.contents;
     return res.status(200).json(updatedContent);
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -122,15 +153,21 @@ module.exports.renameProject = async (req, res) => {
   }
 
   try {
-    const { projectId, newName } = req.body;
-    const updatedProject = await renameProject({ projectId, newName });
+    const { projectId, newProjectName } = req.body;
+    const updatedProjectName = await renameProject({
+      projectId,
+      newProjectName,
+    });
 
     return res.status(200).json({
-      message: "Project renamed successfully",
-      updatedProject,
+      success: true,
+      project: updatedProjectName,
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -151,10 +188,13 @@ module.exports.deleteProject = async (req, res) => {
     });
 
     return res.status(200).json({
+      success: true,
       message: "Project deleted successfully",
-      updatedProjectList,
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

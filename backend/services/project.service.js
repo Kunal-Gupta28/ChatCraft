@@ -2,18 +2,22 @@ const mongoose = require("mongoose");
 const projectModel = require("../models/project.model");
 
 // create project in database
-module.exports.createProject = async ({ name, userId }) => {
-  if (!name) throw new Error("name is required");
+module.exports.createProject = async ({ projectName, userId }) => {
+  if (!projectName) throw new Error("name is required");
   if (!userId) throw new Error("user Id is required");
 
   try {
     const project = await projectModel.create({
-      name,
+      projectName,
       owner: userId,
       users: [userId],
     });
-
-    return project;
+    return {
+      _id: project._id,
+      projectName: project.projectName,
+      owner: project.owner,
+      memberCount: 1,
+    };
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.name) {
       throw new Error("Project name already exists");
@@ -26,7 +30,21 @@ module.exports.createProject = async ({ name, userId }) => {
 module.exports.getAllProjectByUserId = async ({ userId }) => {
   if (!userId) throw new Error("user id is required");
 
-  return projectModel.find({ users: userId }).populate("users");
+  return projectModel.aggregate([
+    {
+      $match: { users: userId },
+    },
+    {
+      $project: {
+        _id: 1,
+        projectName: 1,
+        owner: 1,
+        memberCount: {
+          $size: { $ifNull: ["$users", []] },
+        },
+      },
+    },
+  ]);
 };
 
 // adding collaborators in a project
@@ -56,37 +74,49 @@ module.exports.addUserToProject = async ({ projectId, users, userId }) => {
     .findByIdAndUpdate(
       projectId,
       { $addToSet: { users: { $each: users } } },
-      { new: true }
+      { new: true },
     )
-    .populate("users");
 
-  return updatedProject;
+  return true;
 };
 
 // remove the user form the project
 module.exports.removeUserFromProject = async ({ projectId, userId }) => {
-  if (!projectId || !userId) throw new Error("Missing projectId or userId");
+  if (!projectId || !userId) {
+    throw new Error("Missing projectId or userId");
+  }
 
-  if (!mongoose.Types.ObjectId.isValid(projectId))
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
     throw new Error("Invalid project id");
-  if (!mongoose.Types.ObjectId.isValid(userId))
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid user id");
+  }
 
-  const project = await projectModel.findById(projectId);
-  if (!project) throw new Error("Project not found");
+  const result = await projectModel.updateOne(
+    { _id: projectId },
+    { $pull: { users: userId } },
+  );
 
-  return projectModel
-    .findByIdAndUpdate(projectId, { $pull: { users: userId } }, { new: true })
-    .populate("users");
+  if (result.matchedCount === 0) {
+    throw new Error("Project not found");
+  }
+
+  return true;
 };
 
 // get project by project id
 module.exports.getProjectById = async ({ projectId }) => {
   if (!projectId) throw new Error("project id is required");
+
   if (!mongoose.Types.ObjectId.isValid(projectId))
     throw new Error("Invalid project id");
 
-  return projectModel.findById(projectId).populate("users");
+  return projectModel
+    .findById(projectId)
+    .select("_id projectName owner users")
+    .populate("users", "_id profilePic username");
 };
 
 // setting the file tree data in project database
@@ -134,8 +164,8 @@ module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
 };
 
 // rename the proejct in database
-module.exports.renameProject = async ({ projectId, newName }) => {
-  if (!projectId || !newName)
+module.exports.renameProject = async ({ projectId, newProjectName }) => {
+  if (!projectId || !newProjectName)
     throw new Error("project id or new name of file is required");
 
   if (!mongoose.Types.ObjectId.isValid(projectId))
@@ -144,14 +174,14 @@ module.exports.renameProject = async ({ projectId, newName }) => {
   try {
     const updatedProject = await projectModel.findByIdAndUpdate(
       projectId,
-      { name: newName },
-      { new: true }
+      { projectName: newProjectName },
+      { new: true },
     );
 
     if (!updatedProject) throw new Error("Project not found");
     return updatedProject;
   } catch (error) {
-    return error;
+    throw error;
   }
 };
 
@@ -168,8 +198,9 @@ module.exports.deleteProject = async ({ projectId, userId }) => {
 
   if (!project) throw new Error("Project not found or Unauthorized");
 
-  await projectModel.findByIdAndDelete(projectId);
-
-  // return all remaining project list for UI update
-  return projectModel.find({ users: userId }).populate("users");
+  const result = await projectModel.deleteOne({ _id: projectId });
+  if (result.deletedCount === 0) {
+    throw new Error("Deletion failed");
+  }
+  return true;
 };

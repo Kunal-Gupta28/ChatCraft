@@ -105,7 +105,7 @@ const AuthPage = () => {
               <input
                 id={field}
                 type={inputType(field)}
-                value={form[field]}
+                value={form[field] || ""} 
                 onChange={handleChange}
                 required
                 autoComplete={field}

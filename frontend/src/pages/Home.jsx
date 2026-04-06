@@ -12,10 +12,10 @@ import { useUser } from "../contexts/user.context";
 
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/HomePage/Header";
-import SearchBar from "../components/HomePage/SearchBar";
+import SearchBar from "../components/SearchBar";
 import ProjectList from "../components/HomePage/ProjectList";
 import CreateProjectModal from "../components/HomePage/CreateProjectModal";
-import SuccessToast from "../components/HomePage/SuccessToast";
+import SuccessToast from "../components/SuccessToast";
 import DeleteConfirmation from "../components/HomePage/DeleteConfirmation";
 import RenameProjectPopup from "../components/HomePage/RenameProjectPopup";
 
@@ -29,7 +29,7 @@ const Home = () => {
   // state variables
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,13 +38,15 @@ const Home = () => {
   const [deletePopup, setDeletePopup] = useState({
     open: false,
     projectId: null,
+    projectName: "",
   });
   const [renamePopup, setRenamePopup] = useState({
     open: false,
     projectId: null,
   });
+  const showSuccess = (msg) => setToastMessage(msg);
 
-  // reload user data
+  // load user data
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -58,7 +60,7 @@ const Home = () => {
     fetchUser();
   }, []);
 
-  // fetching all projects and save it in allProject
+  // fetching all projects and save it in project context
   const fetchAllProjects = useCallback(async () => {
     try {
       const { data } = await axiosInstance.get("/project/all");
@@ -71,54 +73,51 @@ const Home = () => {
   // whenever user's values changes fetch the all project data
   useEffect(() => {
     if (user) fetchAllProjects();
-  }, [user, fetchAllProjects]);
+  }, []);
 
   // create project
   const handleCreateProject = useCallback(async () => {
     if (!projectName.trim()) return;
     setLoading(true);
     setError(null);
-    setSuccess(false);
 
     try {
       const res = await axiosInstance.post("/project/create", {
-        name: projectName,
+        projectName,
       });
-
-      console.log(res.data)
       if (res.status === 201) {
-        setSuccess(true);
         setShowPopup(false);
+        setAllProject((prev) => [...prev, res.data.data]);
         setProjectName("");
-        fetchAllProjects();
-
-        setTimeout(() => setSuccess(false), 2500);
+        showSuccess("Project created successfully");
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
-  }, [projectName, fetchAllProjects]);
+  }, [projectName]);
 
   // rename the project
-  const handleReanameProject = useCallback(
-    async (projectId, newName) => {
-      try {
-        const response = await axiosInstance.put("/project/rename", {
-          projectId,
-          newName,
-        });
+  const handleRenameProject = useCallback(async (projectId, newProjectName) => {
+    try {
+      const response = await axiosInstance.put("/project/rename", {
+        projectId,
+        newProjectName,
+      });
 
-        if (response.status === 200) {
-          fetchAllProjects();
-        }
-      } catch (error) {
-        setError(error.response?.data?.message || error.message);
+      if (response.status === 200) {
+        setAllProject((prev) =>
+          prev.map((p) =>
+            p._id === projectId ? { ...p, projectName: newProjectName } : p,
+          ),
+        );
+        showSuccess("Project renamed successfully");
       }
-    },
-    [fetchAllProjects],
-  );
+    } catch (error) {
+      setError(error.response?.data?.message || error.message);
+    }
+  }, []);
 
   // delete protect
   const handleDeleteProject = useCallback(async (projectId) => {
@@ -126,8 +125,11 @@ const Home = () => {
       const response = await axiosInstance.delete(
         `/project/delete/${projectId}`,
       );
+
       if (response.status === 200) {
-        setAllProject(response.data.updatedProjectList);
+        setAllProject((prev) => prev.filter((p) => p._id !== projectId));
+
+        showSuccess("Project deleted successfully");
       }
     } catch (error) {
       setError(error.response?.data?.message || error.message);
@@ -137,7 +139,7 @@ const Home = () => {
   // filter project by input
   const filteredProjects = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return allProject.filter((p) => p.name.toLowerCase().includes(term));
+    return allProject.filter((p) => p.projectName.toLowerCase().includes(term));
   }, [allProject, searchTerm]);
 
   return (
@@ -157,7 +159,11 @@ const Home = () => {
       />
 
       {/* SearchBar */}
-      <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search projects by name..."
+      />
 
       {/* ProjectList */}
       <ProjectList
@@ -178,7 +184,7 @@ const Home = () => {
         setError={setError}
       />
 
-      {/* pops */}
+      {/* Avatar pops */}
       <Suspense fallback={null}>
         {showAvatarPopup && (
           <AvatarPicker
@@ -193,7 +199,7 @@ const Home = () => {
         open={renamePopup.open}
         onClose={() => setRenamePopup({ open: false, projectId: null })}
         onConfirm={(name) => {
-          handleReanameProject(renamePopup.projectId, name);
+          handleRenameProject(renamePopup.projectId, name);
           setRenamePopup({ open: false, projectId: null });
         }}
       />
@@ -201,15 +207,21 @@ const Home = () => {
       {/* Delete Confirmation */}
       <DeleteConfirmation
         open={deletePopup.open}
-        onClose={() => setDeletePopup({ open: false, projectId: null })}
+        projectName={deletePopup.projectName}
+        onClose={() =>
+          setDeletePopup({ open: false, projectId: null, projectName: "" })
+        }
         onConfirm={() => {
           handleDeleteProject(deletePopup.projectId);
-          setDeletePopup({ open: false, projectId: null });
+          setDeletePopup({ open: false, projectId: null, projectName: "" });
         }}
       />
 
       {/* SuccessToast */}
-      <SuccessToast success={success} />
+      <SuccessToast
+        message={toastMessage}
+        clearToast={() => setToastMessage("")}
+      />
     </motion.div>
   );
 };

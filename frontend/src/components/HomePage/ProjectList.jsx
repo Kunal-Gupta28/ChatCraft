@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useProject } from "../../contexts/project.context";
+import { useUser } from "../../contexts/user.context";
 import ProjectCard from "./ProjectCard";
 
 // container animation
@@ -17,24 +17,27 @@ const ProjectList = ({
   openDeletePopup,
   openRenamePopup,
 }) => {
-  const { setProject } = useProject();
   const navigate = useNavigate();
+  const { user } = useUser();
 
   // navigate to project
   const handleOpen = useCallback(
     (project) => {
-      setProject(project);
-      navigate("/project");
+      navigate(`/project/${project._id}`);
     },
-    [setProject, navigate]
+    [navigate],
   );
 
   // delete popup
   const handleDelete = useCallback(
-    (projectId) => {
-      openDeletePopup({ open: true, projectId });
+    ({ _id, projectName }) => {
+      openDeletePopup({
+        open: true,
+        projectId: _id,
+        projectName,
+      });
     },
-    [openDeletePopup]
+    [openDeletePopup],
   );
 
   // rename popup
@@ -42,7 +45,7 @@ const ProjectList = ({
     (projectId) => {
       openRenamePopup({ open: true, projectId });
     },
-    [openRenamePopup]
+    [openRenamePopup],
   );
 
   return (
@@ -60,8 +63,9 @@ const ProjectList = ({
               <ProjectCard
                 key={project._id}
                 project={project}
+                isOwner={project.owner === user?._id}
                 onOpen={() => handleOpen(project)}
-                onDelete={() => handleDelete(project._id)}
+                onDelete={() => handleDelete(project)}
                 onRename={() => handleRename(project._id)}
               />
             ))

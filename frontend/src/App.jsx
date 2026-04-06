@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 // Lazy-loaded pages (code splitting)
-import Landingpage from "./pages/Landingpage";
-const AuthPage = lazy(() => import("./pages/AuthPage"));
+import Landingpage from "./pages/Landing";
+const AuthPage = lazy(() => import("./pages/Auth"));
 const Home = lazy(() => import("./pages/Home"));
 const Project = lazy(() => import("./pages/Project"));
 const NotFound = lazy(() => import("./components/NotFound"));
@@ -47,7 +47,7 @@ const App = () => {
               />
 
               <Route
-                path="/project"
+                path="/project/:projectId"
                 element={
                   <Suspense fallback={<ComponentLoader />}>
                     <Project />

@@ -27,7 +27,6 @@ module.exports.createUser = async ({ username, email, password }) => {
     // deleting password and verson key
     const userObj = user.toObject();
     delete userObj.password;
-    delete userObj.__v;
 
     return { user: userObj, token };
   } catch (error) {
@@ -73,7 +72,7 @@ module.exports.login = async ({ email, password }) => {
 module.exports.getAllUser = async ({ userId }) => {
   const users = await userModel.find({
     _id: { $ne: userId },
-  });
+  }).select("username _id profilePic ");
   return users;
 };
 

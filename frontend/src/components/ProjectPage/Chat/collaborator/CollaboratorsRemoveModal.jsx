@@ -7,6 +7,7 @@ const CollaboratorsRemoveModal = ({
   handleConfirmRemove,
 }) => {
 
+  // reseting fields
   const handleCancel = useCallback(() => {
     setConfirmRemove({ show: false, userId: null, username: "" });
   }, [setConfirmRemove]);

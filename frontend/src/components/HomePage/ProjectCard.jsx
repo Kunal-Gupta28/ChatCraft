@@ -8,8 +8,6 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useUser } from "../../contexts/user.context";
-import { useProject } from "../../contexts/project.context";
 
 // cards animation
 const itemVariants = {
@@ -21,14 +19,9 @@ const itemVariants = {
   },
 };
 
-const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
-  const { user } = useUser();
-  const { setProject } = useProject();
+const ProjectCard = ({ project, isOwner, onOpen, onDelete, onRename }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isOwner = useMemo(() => project.owner === user?._id, [project.owner, user?._id]);
-  const memberCount = useMemo(() => project.users.length, [project.users]);
-  
   // menu toggle
   const toggleMenu = useCallback(() => {
     setMenuOpen((prev) => !prev);
@@ -40,24 +33,29 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
   }, [menuOpen, onOpen]);
 
   // rename handler
-  const handleRename = useCallback((e) => {
-    e.stopPropagation();
-    setMenuOpen(false);
-    onRename();
-  }, [onRename]);
+  const handleRename = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setMenuOpen(false);
+      onRename();
+    },
+    [onRename],
+  );
 
   // delete handler
-  const handleDelete = useCallback((e) => {
-    e.stopPropagation();
-    setMenuOpen(false);
-    onDelete();
-  }, [onDelete]);
+  const handleDelete = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setMenuOpen(false);
+      onDelete();
+    },
+    [onDelete],
+  );
 
-  // handle menu click
+  // three dot click handler
   const handleMenuClick = useCallback((e) => {
     e.stopPropagation();
-    setProject(project);
-  }, [project, setProject]);
+  }, []);
 
   return (
     <motion.div
@@ -74,7 +72,7 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
 
           {/* folder name */}
           <h2 className="text-xl font-semibold truncate tracking-wide">
-            {project.name}
+            {project.projectName}
           </h2>
         </div>
 
@@ -133,7 +131,7 @@ const ProjectCard = ({ project, onOpen, onDelete, onRename }) => {
       {/* user icon and number of members in project*/}
       <div className="flex items-center gap-2 text-gray-400 text-sm mb-6">
         <Users size={16} className="opacity-80" />
-        <span className="tracking-wide">{memberCount} member(s)</span>
+        <span className="tracking-wide">{project.memberCount} members</span>
       </div>
 
       {/* open project text + right arrow */}

@@ -17,7 +17,7 @@ const { isLoggedIn } = require("../middlewares/auth.middleware");
 router.post(
   "/create",
   isLoggedIn,
-  body("name").isString().withMessage("Name is required"),
+  body("projectName").isString().withMessage("Name is required"),
   createProject
 );
 
@@ -46,7 +46,7 @@ router.put(
 );
 
 // get project fromo database
-router.get("/get-project/:projectid", isLoggedIn, getProjectById);
+router.get("/get-project/:projectId", isLoggedIn, getProjectById);
 
 // update file tree in database
 router.put(
@@ -63,7 +63,7 @@ router.put(
   "/rename",
   isLoggedIn,
   body("projectId").isString().withMessage("project Id is must be a string"),
-  body("newName")
+  body("newProjectName")
     .isString()
     .withMessage("new name of project is must be a string"),
   renameProject
