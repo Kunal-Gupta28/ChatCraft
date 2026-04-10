@@ -10,8 +10,8 @@ console.log(isProduction)
 const cookieOptions = {
   httpOnly: isProduction,
   secure: isProduction,
-  sameSite: isProduction ? "none" : "lax",
-  maxAge: 1000 * 60 * 60 * 24, // 1 day
+  sameSite: "lax",
+  maxAge: 1000 * 60 * 60,
 };
 
 // register an user
