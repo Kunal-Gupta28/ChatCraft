@@ -53,8 +53,8 @@ module.exports.loginController = async (req, res) => {
 
     // cookie
     res.cookie("token", token, {
-      httpOnly: false,
-      secure: false,
+      httpOnly: true,
+      secure: true,
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24,
     });
