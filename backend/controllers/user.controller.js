@@ -3,6 +3,17 @@ const userService = require("../services/user.service");
 const userModel = require("../models/user.model");
 const redisClient = require("../services/redis.service");
 
+const isProduction = process.env.NODE_ENV === "production";
+console.log(process.env.NODE_ENV)
+console.log(isProduction)
+// common cookie config
+const cookieOptions = {
+  httpOnly: isProduction,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 1000 * 60 * 60 * 24, // 1 day
+};
+
 // register an user
 module.exports.registerController = async (req, res) => {
   const errors = validationResult(req);
@@ -23,12 +34,7 @@ module.exports.registerController = async (req, res) => {
       return res.status(409).json({ error: "User already exists" });
     }
     // cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 1000 * 60 * 60 * 24,
-    });
+    res.cookie("token", token, cookieOptions);
 
     res.status(201).json({ message: "user registered sucessfully", user , token });
   } catch (error) {
@@ -52,13 +58,8 @@ module.exports.loginController = async (req, res) => {
     }
 
     // cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24,
-    });
-    return res.status(200).json({ user: user,token });
+    res.cookie("token", token, cookieOptions );
+    return res.status(200).json({ user: user });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
