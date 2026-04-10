@@ -4,14 +4,7 @@ import { MessageSquare, Code2 } from "lucide-react";
 import Chat from "./Chat/Chat";
 import CodeEditor from "./Code/CodeEditor";
 
-const ResponsiveLayout = ({
-  messages,
-  handleSend,
-  inputMessage,
-  setInputMessage,
-  fileTree,
-  webContainer,
-}) => {
+const ResponsiveLayout = () => {
   const [activeTab, setActiveTab] = useState("editor");
 
   const isChatActive = activeTab === "chat";
@@ -30,12 +23,7 @@ const ResponsiveLayout = ({
           isChatActive ? "flex" : "hidden lg:flex"
         } flex-1 lg:basis-1/4 2xl:basis-1/5 min-h-[40vh]`}
       >
-        <Chat
-          messages={messages}
-          handleSend={handleSend}
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-        />
+        <Chat />
       </motion.section>
 
       {/* Code Editor  */}
@@ -45,7 +33,7 @@ const ResponsiveLayout = ({
         ${isEditorActive ? "flex" : "hidden lg:flex"} 
         flex-1 lg:basis-3/4 2xl:basis-4/5`}
       >
-        <CodeEditor fileTree={fileTree} webContainer={webContainer} />
+        <CodeEditor/>
       </motion.section>
 
       {/* Bottom Navigation Bar for Mobile and tablet */}

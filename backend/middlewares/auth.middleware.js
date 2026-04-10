@@ -7,7 +7,6 @@ module.exports.isLoggedIn = async (req, res, next) => {
     const authHeader = req.header("Authorization");
     const token =
       req.cookies?.token || (authHeader && authHeader.split(" ")[1]);
-
     if (!token) {
       return res
         .status(401)

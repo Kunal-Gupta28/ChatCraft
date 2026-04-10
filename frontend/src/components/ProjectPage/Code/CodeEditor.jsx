@@ -1,15 +1,17 @@
 import { useState, useMemo, useCallback, useEffect, memo, useRef } from "react";
 import axiosInstance from "../../../config/axios";
 import { useProject } from "../../../contexts/project.context";
+import { useCodeEditor } from "../../../contexts/codeEditor.context";
 import FileTree from "./FileTree";
 import TabsBar from "./TabsBar";
 import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
 import debounce from "./utils/debounce";
 
-const CodeEditor = ({ fileTree, webContainer }) => {
+const CodeEditor = () => {
   // context api
   const { project } = useProject();
+  const { fileTree, webContainer } = useCodeEditor();
 
   // refs
   const openFilesRef = useRef([]);
@@ -178,7 +180,6 @@ const CodeEditor = ({ fileTree, webContainer }) => {
           onClick={(e) => e.stopPropagation()}
         >
           <FileTree
-            tree={fileTree}
             activeFile={activeFile}
             activeTab={activeTab}
             openFolders={openFolders}
@@ -191,7 +192,6 @@ const CodeEditor = ({ fileTree, webContainer }) => {
       {/* DESKTOP STICKY FILE TREE */}
       <div className="hidden md:block lg:w-[180px] 2xl:w-[200px] h-full border-r border-gray-800 bg-gray-900">
         <FileTree
-          tree={fileTree}
           activeFile={activeFile}
           activeTab={activeTab}
           openFolders={openFolders}

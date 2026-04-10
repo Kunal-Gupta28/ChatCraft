@@ -1,9 +1,11 @@
 import { memo, useMemo } from "react";
 import ChatMessageBubble from "./ChatMessageBubble";
 import { useUser } from "../../../contexts/user.context";
+import { useMessages } from "../../../contexts/Messages.context";
 
-const ChatMessages = ({ messages, chatEndRef }) => {
+const ChatMessages = ({ chatEndRef }) => {
   const { user: currentUser } = useUser();
+  const {messages} = useMessages()
 
   const currentUserId = currentUser?._id;
 

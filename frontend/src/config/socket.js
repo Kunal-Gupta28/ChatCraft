@@ -13,9 +13,7 @@ export const initializeSocket = (projectId) => {
 
   // create socket instance
   socketInstance = io(import.meta.env.VITE_SERVER_URL, {
-    auth: {
-      // token: localStorage.getItem("token"),
-    },
+    withCredentials: true,
     query: { projectId },
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,

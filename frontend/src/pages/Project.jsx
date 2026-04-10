@@ -1,58 +1,63 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import { useUser } from "../contexts/user.context";
 import { useProject } from "../contexts/project.context";
+import { useMessages } from "../contexts/Messages.context";
+import { useCodeEditor } from "../contexts/codeEditor.context";
 import {
   initializeSocket,
   receiveMessage,
-  sendMessage,
 } from "../config/socket";
 import { getWebContainer } from "../config/webContainer";
 import ResponsiveLayout from "../components/ProjectPage/ResponsiveLayout";
 import axiosInstance from "../config/axios";
 import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 const Project = () => {
   const { projectId } = useParams();
 
   // context api
-  const { user: currentUser, setUser } = useUser();
+  const { setUser } = useUser();
   const { project: currentProject, setProject } = useProject();
-
-  // state variable
-  const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [fileTree, setFileTree] = useState(null);
-  const [webContainer, setWebContainer] = useState(null);
+  const { setMessages } = useMessages();
+  const { fileTree,setFileTree, webContainer, setWebContainer } = useCodeEditor();
 
   // load user data
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data } = await axiosInstance.get("/getMe");
-        setUser(data.user);
-      } catch (err) {
-        console.log(err);
-      }
-    };
+  const fetchUser = async () => {
+    const { data } = await axiosInstance.get("/getMe");
+    return data.user;
+  };
 
-    fetchUser();
-  }, []);
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: fetchUser,
+  });
+
+  useEffect(() => {
+    if (userData) {
+      setUser(userData);
+    }
+  }, [userData, setUser]);
 
   // load project data on refresh
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const res = await axiosInstance.get(
-          `/project/get-project/${projectId}`,
-        );
-        setProject(res.data.project);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  const fetchProject = async () => {
+    const { data } = await axiosInstance.get(
+      `/project/get-project/${projectId}`
+    );
+    return data.project;
+  };
 
-    fetchProject();
-  }, []);
+  const { data: projectData } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: fetchProject,
+    enabled: !!projectId,
+  });
+
+  useEffect(() => {
+    if (projectData) {
+      setProject(projectData);
+    }
+  }, [projectData, setProject]);
 
   // Load saved file tree
   useEffect(() => {
@@ -64,11 +69,13 @@ const Project = () => {
   // Load WebContainer once
   useEffect(() => {
     let isMounted = true;
+
     if (!webContainer) {
       getWebContainer().then((container) => {
         if (isMounted) setWebContainer(container);
       });
     }
+
     return () => {
       isMounted = false;
     };
@@ -100,9 +107,9 @@ const Project = () => {
 
     return () => {
       cleanup?.();
-      if (socket?.connected) socket.disconnect();
+      socket?.disconnect(); 
     };
-  }, [currentProject?._id]);
+  }, [currentProject?._id, setMessages]);
 
   // Mount file structure
   useEffect(() => {
@@ -118,31 +125,8 @@ const Project = () => {
     };
   }, [webContainer]);
 
-  // Send message
-  const handleSend = useCallback(() => {
-    if (!inputMessage.trim() || !currentUser?._id) return;
-
-    const msg = {
-      senderId: currentUser._id,
-      senderName: currentUser.username,
-      message: inputMessage.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, msg]);
-    setInputMessage("");
-    sendMessage("project-message", msg);
-  }, [inputMessage, currentUser]);
-
   return (
-    <ResponsiveLayout
-      messages={messages}
-      handleSend={handleSend}
-      inputMessage={inputMessage}
-      setInputMessage={setInputMessage}
-      fileTree={fileTree}
-      webContainer={webContainer}
-    />
+    <ResponsiveLayout/>
   );
 };
 

@@ -1,32 +1,68 @@
-const express = require('express')
+const express = require("express");
 const router = express.Router();
-const { body } = require('express-validator');
-const { registerController, loginController, setAvatar, getAllUser, logout, getMe } = require('../controllers/user.controller')
-const {isLoggedIn} = require('../middlewares/auth.middleware');
+const { body } = require("express-validator");
+const {
+  registerController,
+  loginController,
+  setAvatar,
+  getAllUser,
+  logout,
+  getMe,
+} = require("../controllers/user.controller");
+const { isLoggedIn } = require("../middlewares/auth.middleware");
 
 // register routes
-router.post('/register',[
-    body('username').isString().notEmpty().trim(),
-    body('email').isEmail().isLength({min:7,max:50}).isString().notEmpty().trim().withMessage("Please enter an valid Email"),
-    body('password').isString().notEmpty().trim()
-],registerController);
+router.post(
+  "/register",
+  [
+    body("username").isString().notEmpty().trim(),
+    body("email")
+      .isEmail()
+      .isLength({ min: 7, max: 50 })
+      .isString()
+      .notEmpty()
+      .trim()
+      .withMessage("Please enter an valid Email"),
+    body("password").isString().notEmpty().trim(),
+  ],
+  registerController,
+);
 
 // login route
-router.post('/login',[
-    body('email').isEmail().isLength({min:7,max:50}).isString().notEmpty().trim().withMessage("Please enter an valid Email"),
-    body('password').isString().notEmpty().trim()
-],loginController);
+router.post(
+  "/login",
+  [
+    body("email")
+      .isEmail()
+      .isLength({ min: 7, max: 50 })
+      .isString()
+      .notEmpty()
+      .trim()
+      .withMessage("Please enter an valid Email"),
+    body("password").isString().notEmpty().trim(),
+  ],
+  loginController,
+);
 
 // set avatar
-router.put('/setAvatar',isLoggedIn, setAvatar);
+router.put(
+  "/setAvatar",
+  body("avatar")
+    .isString()
+    .notEmpty()
+    .trim()
+    .withMessage("Please selected a valid avatar"),
+  isLoggedIn,
+  setAvatar,
+);
 
 // reload user data
-router.get('/getMe',isLoggedIn, getMe);
+router.get("/getMe", isLoggedIn, getMe);
 
 // get all user
-router.get('/all', isLoggedIn, getAllUser);
+router.get("/all", isLoggedIn, getAllUser);
 
 // logout route
-router.get('/logout', isLoggedIn, logout)
+router.get("/logout", isLoggedIn, logout);
 
 module.exports = router;

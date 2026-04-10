@@ -2,6 +2,7 @@ require("dotenv/config");
 const http = require("http");
 const app = require("./app.js");
 const port = process.env.PORT;
+const cookie = require("cookie");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const projectModel = require("./models/project.model.js");
@@ -13,6 +14,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [process.env.CLIENT_URL, process.env.CLIENT_URL_DEV],
+    credentials: true,
     methods: ["GET", "POST"],
   },
 });
@@ -20,9 +22,13 @@ const io = new Server(server, {
 // socket.io middleware
 io.use(async (socket, next) => {
   try {
-    const token =
-      socket.handshake.auth?.token ||
-      socket.handshake.headers.authorization?.split(" ")[1];
+    // 1. Try cookie first
+    const cookies = cookie.parse(socket.handshake.headers.cookie || "");
+    let token = cookies.token;
+    // 2. Fallback to auth (Safari-safe)
+    if (!token) {
+      token = socket.handshake.auth.token;
+    }
 
     if (!token) {
       return next(new Error("Authentication error"));
@@ -32,6 +38,7 @@ io.use(async (socket, next) => {
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return next(new Error("Invalid project id"));
     }
+
     socket.project = await projectModel.findById(projectId);
 
     if (!socket.project) {
@@ -39,11 +46,8 @@ io.use(async (socket, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded) {
-      return next(new Error("Authentication error"));
-    }
-
     socket.user = decoded;
+
     next();
   } catch (error) {
     next(error);

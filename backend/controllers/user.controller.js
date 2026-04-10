@@ -24,13 +24,13 @@ module.exports.registerController = async (req, res) => {
     }
     // cookie
     res.cookie("token", token, {
-      httpOnly: false,
+      httpOnly: true,
       secure: true,
       sameSite: "None",
       maxAge: 1000 * 60 * 60 * 24,
     });
 
-    res.status(201).json({ message: "user registered sucessfully", user });
+    res.status(201).json({ message: "user registered sucessfully", user , token });
   } catch (error) {
     return res.status(400).json({ "internal error": error });
   }
@@ -54,12 +54,11 @@ module.exports.loginController = async (req, res) => {
     // cookie
     res.cookie("token", token, {
       httpOnly: false,
-      secure: true,
-      sameSite: "None",
+      secure: false,
+      sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24,
     });
-
-    return res.status(200).json({ user: user });
+    return res.status(200).json({ user: user,token });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -77,11 +76,10 @@ module.exports.setAvatar = async (req, res) => {
 
   try {
     const updatedUser = await userService.setAvatar({ avatar, userId });
-
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found" });
     }
-
+    
     return res.status(200).json({
       message: "Avatar updated successfully",
       user: updatedUser,
@@ -95,7 +93,7 @@ module.exports.setAvatar = async (req, res) => {
 module.exports.getAllUser = async (req, res) => {
   try {
     const isLoggedInUser = await userModel.findOne({ email: req.user.email });
-
+console.log("req.user",req.user)
     if (!isLoggedInUser) {
       return res.status(404).json({ error: "User not found" });
     }

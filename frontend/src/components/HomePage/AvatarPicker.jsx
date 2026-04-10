@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check } from "lucide-react";
 import axiosInstance from "../../config/axios";
-import {useUser} from '../../contexts/user.context'
+import { useUser } from "../../contexts/user.context";
 
 const avatarOptions = [
   "/assets/1.webp",
@@ -20,9 +20,8 @@ const avatarOptions = [
 ];
 
 const AvatarPicker = ({ open, onClose }) => {
-  
   // context api
-  const {user, setUser} = useUser();
+  const { user, setUser } = useUser();
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -40,14 +39,18 @@ const AvatarPicker = ({ open, onClose }) => {
     if (!selected || loading) return;
     try {
       setLoading(true);
-      const res = await axiosInstance.put('/setAvatar', {
+
+      const res = await axiosInstance.put("/setAvatar", {
         avatar: selected,
-        userId: user._id,
+        userId: user._id
       });
-      console.log(res)
 
       if (res.status === 200) {
-        setUser(res.data.user);
+        setUser((prev) => ({
+          ...prev,
+          profilePic: res.data.user.profilePic,
+        }));
+
         setSelected(null);
         onClose();
       }
@@ -56,8 +59,7 @@ const AvatarPicker = ({ open, onClose }) => {
     } finally {
       setLoading(false);
     }
-  }, [selected, user?._id, setUser, onClose, loading]);
-
+  }, [selected, setUser, onClose, loading]);
   return (
     <AnimatePresence>
       {open && (

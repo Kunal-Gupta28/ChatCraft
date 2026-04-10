@@ -68,14 +68,6 @@ module.exports.login = async ({ email, password }) => {
   }
 };
 
-// get all user from database
-module.exports.getAllUser = async ({ userId }) => {
-  const users = await userModel.find({
-    _id: { $ne: userId },
-  }).select("username _id profilePic ");
-  return users;
-};
-
 // set avatar in projet database
 module.exports.setAvatar = async ({ avatar, userId }) => {
   try {
@@ -83,12 +75,9 @@ module.exports.setAvatar = async ({ avatar, userId }) => {
       throw new Error("avatar and userId are required");
     }
 
-    const updatedUser = await userModel.findByIdAndUpdate(
-      userId,
-      { profilePic: avatar },
-      { new: true },
-    );
-
+    const updatedUser = await userModel
+      .findByIdAndUpdate(userId, { profilePic: avatar }, { new: true })
+      .select("profilePic");
     return updatedUser;
   } catch (error) {
     throw error;
@@ -99,4 +88,14 @@ module.exports.setAvatar = async ({ avatar, userId }) => {
 module.exports.getMe = async (email) => {
   const user = await userModel.findOne(email).select("-password -__v");
   return user;
+};
+
+// get all user from database
+module.exports.getAllUser = async ({ userId }) => {
+  const users = await userModel
+    .find({
+      _id: { $ne: userId },
+    })
+    .select("username _id profilePic ");
+  return users;
 };

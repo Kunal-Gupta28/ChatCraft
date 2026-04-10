@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, memo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import axiosInstance from "../config/axios";
 import { useUser } from "../contexts/user.context";
 
@@ -19,53 +20,45 @@ const AuthPage = () => {
   );
 
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  //  IMPORTANT FIX → reset form when route changes
+  // reset form on route change
   useEffect(() => {
     setForm(initialForm);
   }, [initialForm]);
 
+  // input fields
   const fields = useMemo(
     () => (isLogin ? ["email", "password"] : ["username", "email", "password"]),
     [isLogin],
   );
 
+  // two way binding
   const handleChange = useCallback((e) => {
     const { id, value } = e.target;
+    mutation.reset(); // clear error when user types again
     setForm((prev) => ({ ...prev, [id]: value }));
   }, []);
 
-  // handle submit
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-
-      if (loading) return;
-
-      setError("");
-      setLoading(true);
-
-      try {
-        const endpoint = isLogin ? "/login" : "/register";
-        const response = await axiosInstance.post(endpoint, form);
-        const { user } = response.data;
-        setUser(user);
-        navigate("/home");
-      } catch (err) {
-        const message =
-          err?.response?.data?.error ||
-          (isLogin
-            ? "Invalid credentials. Please try again."
-            : "Registration failed. Try again.");
-
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
+  // fetching data (POST → mutation)
+  const mutation = useMutation({
+    mutationFn: async (formData) => {
+      const endpoint = isLogin ? "/login" : "/register";
+      const { data } = await axiosInstance.post(endpoint, formData);
+      return data;
     },
-    [form, isLogin, navigate, setUser, loading],
+    onSuccess: (data) => {
+      setUser(data.user);
+      navigate("/home");
+    },
+  });
+
+  // submit handler
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      mutation.mutate(form);
+    },
+    [form, mutation],
   );
 
   const inputType = useCallback((field) => {
@@ -73,6 +66,8 @@ const AuthPage = () => {
     if (field === "email") return "email";
     return "text";
   }, []);
+
+  const loading = mutation.isPending;
 
   return (
     <div className="h-[100dvh] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 select-none">
@@ -89,9 +84,13 @@ const AuthPage = () => {
           {isLogin ? "Login" : "Register"}
         </h2>
 
-        {error && (
+        {/* error handling from React Query */}
+        {mutation.isError && (
           <div className="bg-red-100 text-red-700 p-2 rounded mb-4 text-sm text-center">
-            {error}
+            {mutation.error?.response?.data?.error ||
+              (isLogin
+                ? "Invalid credentials. Please try again."
+                : "Registration failed. Try again.")}
           </div>
         )}
 
@@ -105,7 +104,7 @@ const AuthPage = () => {
               <input
                 id={field}
                 type={inputType(field)}
-                value={form[field] || ""} 
+                value={form[field] || ""}
                 onChange={handleChange}
                 required
                 autoComplete={field}
