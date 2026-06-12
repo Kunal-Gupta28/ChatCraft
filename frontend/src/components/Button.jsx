@@ -1,27 +1,50 @@
+// Button.jsx
+
 const Button = ({
   children,
   onClick,
   disabled,
   variant = "primary",
   className = "",
+  type = "button",
 }) => {
-  const base = "px-4 py-2 rounded-lg transition";
+  const base =
+    "px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center cursor-pointer";
 
   const variants = {
-    primary: "bg-blue-600 hover:bg-blue-500",
-    danger: "bg-red-600 hover:bg-red-500",
-    secondary: "bg-gray-700 hover:bg-gray-600",
-  };
+    primary: `
+      bg-blue-600 text-white
+      hover:bg-blue-500
+      disabled:bg-blue-600
+      disabled:text-white
+    `,
 
-  const disabledStyle = "opacity-50 cursor-not-allowed";
+    secondary: `
+      bg-gray-700 text-white
+      hover:bg-gray-600
+      disabled:bg-gray-700
+      disabled:text-gray-400
+    `,
+
+    danger: `
+      bg-red-600 text-white
+      hover:bg-red-500
+      disabled:bg-red-600
+      disabled:text-white
+    `,
+  };
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${base} ${variants[variant]} ${
-        disabled ? disabledStyle : ""
-      } ${className}`}
+      className={`
+        ${base}
+        ${variants[variant]}
+         w-24 disabled:cursor-not-allowed
+        ${className}
+      `}
     >
       {children}
     </button>

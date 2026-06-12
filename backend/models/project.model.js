@@ -4,9 +4,9 @@ const projectSchema = new mongoose.Schema(
   {
     projectName: {
       type: String,
-      required: true,
+      required: [true, "project name is required"],
       trim: true,
-      unique: [true, "project name must be unique"],
+      unique: true,
       lowercase: true,
     },
     owner: {

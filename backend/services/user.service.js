@@ -1,23 +1,23 @@
 const userModel = require("../models/user.model");
 
 // create new user in database
-module.exports.createUser = async ({ username, email, password }) => {
+module.exports.createUser = async (username, email, password ) => {
   try {
     if (!username || !email || !password) {
       throw new Error("username , email and password are missing");
     }
-    const hashPassword = await userModel.hashPassword(password);
-
     // checking for user is already registered or not
     const userExist = await userModel.findOne({ email });
 
     // if user already exist
     if (userExist) {
-      return { user: null, token: null };
+      throw new Error("User already exists");
     }
+
+    const hashPassword = await userModel.hashPassword(password);
     const user = await userModel.create({
-      username: username,
-      email: email,
+      username,
+      email,
       password: hashPassword,
     });
 
@@ -47,12 +47,12 @@ module.exports.login = async ({ email, password }) => {
 
     // if user not present
     if (!user) {
-      return { user: null, token: null };
+      throw new Error("user not found");
     }
 
     const isMatch = await user.isValidPassword(password);
     if (!isMatch) {
-      return { user: null, token: null };
+      throw new Error("Invalid Credentials ");
     }
 
     // deleting password from data
@@ -71,6 +71,7 @@ module.exports.login = async ({ email, password }) => {
 // set avatar in projet database
 module.exports.setAvatar = async ({ avatar, userId }) => {
   try {
+    console.log(userId)
     if (!avatar || !userId) {
       throw new Error("avatar and userId are required");
     }
@@ -86,7 +87,7 @@ module.exports.setAvatar = async ({ avatar, userId }) => {
 
 // get me
 module.exports.getMe = async (email) => {
-  const user = await userModel.findOne(email).select("-password -__v");
+  const user = await userModel.findOne(email).select("-password");
   return user;
 };
 
@@ -96,6 +97,6 @@ module.exports.getAllUser = async ({ userId }) => {
     .find({
       _id: { $ne: userId },
     })
-    .select("username _id profilePic ");
+    .select("-password");
   return users;
 };

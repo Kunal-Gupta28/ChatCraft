@@ -1,17 +1,11 @@
-import { useEffect } from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
-import { useUser } from '../contexts/user.context';
+import { Navigate, Outlet } from "react-router-dom";
 
 const UserAuth = () => {
-  const navigate = useNavigate();
-  const { user } = useUser(); 
-  useEffect(() => {
-    if ( !user) {
-      navigate('/auth/login', { replace: true });
-    }
-  }, [ user, navigate]);
+  const token = localStorage.getItem("token");
 
-  if (!user) return null;
+  if (!token) {
+    return <Navigate to="/auth/login" replace />;
+  }
 
   return <Outlet />;
 };

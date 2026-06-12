@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { containerVariants } from "../../data/AnimationData";
 import { features } from "../../data/LandingData";
-import Card from "./Card";
+import FeatureCard from "./cards/FeatureCard";
 
 const Features = () => {
   return (
@@ -22,7 +22,7 @@ const Features = () => {
           variants={containerVariants}
         >
           {features.map((feature) => (
-            <Card key={feature.title} role="featureCard" data={feature} />
+            <FeatureCard key={feature.title} {...feature}/>
           ))}
         </motion.div>
       </div>

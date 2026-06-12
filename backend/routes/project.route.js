@@ -2,14 +2,14 @@ const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
 const {
-  createProject,
+  createController,
   getAllProject,
   addUserToProject,
   getProjectById,
   removeUserFromProject,
   updateFileTree,
   renameProject,
-  deleteProject
+  deleteProject,
 } = require("../controllers/project.controller");
 const { isLoggedIn } = require("../middlewares/auth.middleware");
 
@@ -17,8 +17,12 @@ const { isLoggedIn } = require("../middlewares/auth.middleware");
 router.post(
   "/create",
   isLoggedIn,
-  body("projectName").isString().withMessage("Name is required"),
-  createProject
+  body("projectName")
+    .isString()
+    .trim()
+    .notEmpty()
+    .withMessage("Name is required"),
+  createController,
 );
 
 // get all project
@@ -33,7 +37,7 @@ router.put(
     .isArray({ min: 1 })
     .withMessage("Users must be a non-empty array"),
   body("users.*").isString().withMessage("Each user must be a string"),
-  addUserToProject
+  addUserToProject,
 );
 
 //  remove collaborator from project data
@@ -42,7 +46,7 @@ router.put(
   isLoggedIn,
   body("projectId").isString().withMessage("project id must be a string"),
   body("userId").isString().withMessage("user id must be a string"),
-  removeUserFromProject
+  removeUserFromProject,
 );
 
 // get project fromo database
@@ -55,21 +59,28 @@ router.put(
   body("projectId").isString().withMessage("projectId is required"),
   body("updatedfile").isString().withMessage("updated file is required"),
   body("newCode").isString().withMessage("new code is required"),
-  updateFileTree
+  updateFileTree,
 );
 
 // rename the project
 router.put(
   "/rename",
   isLoggedIn,
-  body("projectId").isString().withMessage("project Id is must be a string"),
+  body("projectId").isMongoId().withMessage("Invalid project id"),
   body("newProjectName")
     .isString()
-    .withMessage("new name of project is must be a string"),
-  renameProject
+    .trim()
+    .notEmpty()
+    .withMessage("New project name is must be a string")
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Project name must be between 1 and 50 characters"),
+  renameProject,
 );
 
 // delete the project from the database
 router.delete("/delete/:projectId", isLoggedIn, deleteProject);
 
 module.exports = router;
+
+// if project doesnt exists rename
+//  old name = new name

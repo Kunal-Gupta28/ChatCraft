@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { testimonials } from "../../data/LandingData";
 import { containerVariants } from "../../data/AnimationData";
-import Card from "./Card";
+import TestimonialCard from "./cards/TestimonialCard";
 
 const Testimonials = () => {
   return (
@@ -22,7 +22,7 @@ const Testimonials = () => {
           variants={containerVariants}
         >
           {testimonials.map((testimonials) => (
-            <Card key={testimonials.title} role="testimonialCard" data={testimonials} />
+            <TestimonialCard key={testimonials.title} {...testimonials} />
           ))}
         </motion.div>
       </div>

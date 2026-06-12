@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 const projectModel = require("../models/project.model");
 
 // create project in database
-module.exports.createProject = async ({ projectName, userId }) => {
-  if (!projectName) throw new Error("name is required");
-  if (!userId) throw new Error("user Id is required");
+module.exports.createService = async ({ projectName, userId }) => {
+  if (!projectName) throw new Error("Project name is required");
+  if (!userId) throw new Error("User Id is required");
 
   try {
     const project = await projectModel.create({
@@ -18,11 +18,13 @@ module.exports.createProject = async ({ projectName, userId }) => {
       owner: project.owner,
       memberCount: 1,
     };
-  } catch (err) {
-    if (err.code === 11000 && err.keyPattern?.name) {
-      throw new Error("Project name already exists");
+  } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.projectName) {
+      throw new Error(
+        `"${projectName}" already exists. Please enter another name to create new project`,
+      );
     }
-    throw err;
+    throw error;
   }
 };
 
@@ -70,12 +72,11 @@ module.exports.addUserToProject = async ({ projectId, users, userId }) => {
 
   if (!project) throw new Error("Project not found or user not authorized");
 
-  const updatedProject = await projectModel
-    .findByIdAndUpdate(
-      projectId,
-      { $addToSet: { users: { $each: users } } },
-      { new: true },
-    )
+  const updatedProject = await projectModel.findByIdAndUpdate(
+    projectId,
+    { $addToSet: { users: { $each: users } } },
+    { new: true },
+  );
 
   return true;
 };
@@ -164,23 +165,46 @@ module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
 };
 
 // rename the proejct in database
-module.exports.renameProject = async ({ projectId, newProjectName }) => {
-  if (!projectId || !newProjectName)
-    throw new Error("project id or new name of file is required");
+module.exports.renameProject = async ({
+  projectId,
+  newProjectName,
+  userId,
+}) => {
+  const trimmedName = newProjectName.trim();
 
-  if (!mongoose.Types.ObjectId.isValid(projectId))
-    throw new Error("Invalid project id");
+  // trimmed the name
+  if (!trimmedName) {
+    throw new Error("Project name is required");
+  }
+
+  // checking for existance project
+  const existingProject = await projectModel.findOne({ _id: projectId });
+
+  // prject not exist
+  if (!existingProject) {
+    throw new Error("Project not found");
+  }
+
+  // prevent same-name rename
+  if (existingProject.projectName === trimmedName) {
+    throw new Error("Now project name cannot be same as old name");
+  }
 
   try {
     const updatedProject = await projectModel.findByIdAndUpdate(
       projectId,
-      { projectName: newProjectName },
+      { projectName: trimmedName },
       { new: true },
     );
 
     if (!updatedProject) throw new Error("Project not found");
     return updatedProject;
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.projectName) {
+      throw new Error(
+        `"${trimmedName}" already exists. Please enter another name`,
+      );
+    }
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 const projectModel = require("../models/project.model");
 const {
-  createProject,
+  createService,
   getAllProjectByUserId,
   addUserToProject,
   removeUserFromProject,
@@ -13,27 +13,22 @@ const { validationResult } = require("express-validator");
 const userModel = require("../models/user.model");
 
 // create new project
-module.exports.createProject = async (req, res) => {
+module.exports.createController = async (req, res) => {
+  // validation
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { projectName } = req.body;
-    const isLoggedInUser = await userModel.findOne({ email: req.user.email });
-    const userId = isLoggedInUser._id;
-    const newProject = await createProject({ projectName, userId });
+    const newProject = await createService({ projectName, userId: req.user.userId });
     return res.status(201).json({
       success: true,
       data: newProject,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({message: error.message});
   }
 };
 
@@ -146,8 +141,8 @@ module.exports.updateFileTree = async (req, res) => {
 
 // rename proejct name in database
 module.exports.renameProject = async (req, res) => {
+  // validation
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
@@ -157,6 +152,7 @@ module.exports.renameProject = async (req, res) => {
     const updatedProjectName = await renameProject({
       projectId,
       newProjectName,
+      userId:req.user.userId
     });
 
     return res.status(200).json({
@@ -198,3 +194,4 @@ module.exports.deleteProject = async (req, res) => {
     });
   }
 };
+   

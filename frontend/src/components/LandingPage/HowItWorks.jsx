@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { howItWorks } from "../../data/LandingData";
 import { containerVariants } from "../../data/AnimationData";
-import Card from "./Card"
+import StepCard from "./cards/StepCard";
 
 const HowItWorks = () => {
   return (
@@ -22,7 +22,7 @@ const HowItWorks = () => {
           variants={containerVariants}
         >
           {howItWorks.map((step) => (
-            <Card key={step.title} data={step} role="howCard" />
+            <StepCard key={step.title} {...step} />
           ))}
         </motion.div>
       </div>

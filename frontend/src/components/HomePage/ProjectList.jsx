@@ -42,8 +42,8 @@ const ProjectList = ({
 
   // rename popup
   const handleRename = useCallback(
-    (projectId) => {
-      openRenamePopup({ open: true, projectId });
+    (projectId, projectName) => {
+      openRenamePopup({ open: true, projectId, projectName });
     },
     [openRenamePopup],
   );
@@ -66,7 +66,7 @@ const ProjectList = ({
                 isOwner={project.owner === user?._id}
                 onOpen={() => handleOpen(project)}
                 onDelete={() => handleDelete(project)}
-                onRename={() => handleRename(project._id)}
+                onRename={() => handleRename(project._id,project.projectName)}
               />
             ))
           ) : (

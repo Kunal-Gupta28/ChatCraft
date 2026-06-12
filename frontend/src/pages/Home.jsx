@@ -4,14 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../config/axios";
 import { useUser } from "../contexts/user.context";
 
+// component import
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/HomePage/Header";
 import SearchBar from "../components/SearchBar";
 import ProjectList from "../components/HomePage/ProjectList";
-import CreateProjectModal from "../components/HomePage/CreateProjectModal";
+import CreatePopup from "../components/HomePage/CreatePopup";
 import SuccessToast from "../components/SuccessToast";
 import DeleteConfirmation from "../components/HomePage/DeleteConfirmation";
-import RenameProjectPopup from "../components/HomePage/RenameProjectPopup";
+import RenamePopup from "../components/HomePage/RenamePopup";
 
 // lazy loaded components
 const AvatarPicker = lazy(() => import("../components/HomePage/AvatarPicker"));
@@ -22,12 +23,11 @@ const Home = () => {
   const { setUser } = useUser();
 
   // state variables
-  const [error, setError] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
-  const [showPopup, setShowPopup] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAvatarPopup, setShowAvatarPopup] = useState(false);
+  const [createPopup, setCreatePopup] = useState(false);
+  const [avatarPopup, setAvatarPopup] = useState(false);
   const [deletePopup, setDeletePopup] = useState({
     open: false,
     projectId: null,
@@ -36,6 +36,7 @@ const Home = () => {
   const [renamePopup, setRenamePopup] = useState({
     open: false,
     projectId: null,
+    projectName: "",
   });
   const showSuccess = (msg) => setToastMessage(msg);
 
@@ -71,10 +72,10 @@ const Home = () => {
   // create project
   const handleCreateProject = () => {
     if (!projectName.trim()) return;
-    createProjectMutation.mutate(projectName);
+    createMutation.mutate(projectName);
   };
 
-  const createProjectMutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: (projectName) =>
       axiosInstance.post("/project/create", { projectName }),
 
@@ -84,22 +85,18 @@ const Home = () => {
         res.data.data,
       ]);
 
-      setShowPopup(false);
+      setCreatePopup(false);
       setProjectName("");
       showSuccess("Project created successfully");
-    },
-
-    onError: (err) => {
-      setError(err.response?.data?.message || err.message);
     },
   });
 
   // rename the project
   const handleRenameProject = (projectId, newProjectName) => {
-    renameProjectMutation.mutate({ projectId, newProjectName });
+    renameMutation.mutate({ projectId, newProjectName });
   };
 
-  const renameProjectMutation = useMutation({
+  const renameMutation = useMutation({
     mutationFn: ({ projectId, newProjectName }) =>
       axiosInstance.put("/project/rename", {
         projectId,
@@ -114,12 +111,8 @@ const Home = () => {
             : p,
         ),
       );
-
+      setRenamePopup({ open: false, projectId: null, projectName: "" });
       showSuccess("Project renamed successfully");
-    },
-
-    onError: (error) => {
-      setError(error.response?.data?.message || error.message);
     },
   });
 
@@ -139,10 +132,6 @@ const Home = () => {
       );
 
       showSuccess("Project deleted successfully");
-    },
-
-    onError: (error) => {
-      setError(error.response?.data?.message || error.message);
     },
   });
 
@@ -166,10 +155,7 @@ const Home = () => {
       <BackgroundBlobs />
 
       {/* header */}
-      <Header
-        setShowPopup={setShowPopup}
-        setShowAvatarPopup={setShowAvatarPopup}
-      />
+      <Header setCreatePopup={setCreatePopup} setAvatarPopup={setAvatarPopup} />
 
       {/* SearchBar */}
       <SearchBar
@@ -186,35 +172,36 @@ const Home = () => {
       />
 
       {/* Create Project */}
-      <CreateProjectModal
-        showPopup={showPopup}
-        setShowPopup={setShowPopup}
+      <CreatePopup
+        createPopup={createPopup}
+        setCreatePopup={setCreatePopup}
         projectName={projectName}
         setProjectName={setProjectName}
         handleCreateProject={handleCreateProject}
-        loading={createProjectMutation.isPending}
-        error={error}
-        setError={setError}
+        createMutation={createMutation}
       />
 
       {/* Avatar pops */}
       <Suspense fallback={null}>
-        {showAvatarPopup && (
+        {avatarPopup && (
           <AvatarPicker
-            open={showAvatarPopup}
-            onClose={() => setShowAvatarPopup(false)}
+            open={avatarPopup}
+            onClose={() => setAvatarPopup(false)}
           />
         )}
       </Suspense>
 
       {/* Rename Project Popup */}
-      <RenameProjectPopup
-        open={renamePopup.open}
-        onClose={() => setRenamePopup({ open: false, projectId: null })}
-        onConfirm={(name) => {
-          handleRenameProject(renamePopup.projectId, name);
-          setRenamePopup({ open: false, projectId: null });
+      <RenamePopup
+        renamePopup={renamePopup}
+        onClose={() => {
+          (renameMutation.reset(),
+            setRenamePopup({ open: false, projectId: null, projectName: "" }));
         }}
+        onConfirm={(newName) => {
+          handleRenameProject(renamePopup.projectId, newName);
+        }}
+        renameMutation={renameMutation}
       />
 
       {/* Delete Confirmation */}
@@ -222,9 +209,10 @@ const Home = () => {
         open={deletePopup.open}
         projectName={deletePopup.projectName}
         loading={deleteProjectMutation.isPending}
-        onClose={() =>
-          setDeletePopup({ open: false, projectId: null, projectName: "" })
-        }
+        onClose={() => {
+          (deleteProjectMutation.reset(),
+            setDeletePopup({ open: false, projectId: null, projectName: "" }));
+        }}
         onConfirm={() => {
           handleDeleteProject(deletePopup.projectId);
           setDeletePopup({ open: false, projectId: null, projectName: "" });
@@ -241,3 +229,4 @@ const Home = () => {
 };
 
 export default Home;
+// 245

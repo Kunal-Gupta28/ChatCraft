@@ -1,4 +1,3 @@
-import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 
 // container animation
@@ -29,7 +28,7 @@ const PageLoader = () => {
   const text = "ChatCraft";
 
   // memoize split (small but clean optimization)
-  const characters = useMemo(() => text.split(""), [text]);
+  const characters = text.split("");
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-gray-950 z-[999]">
@@ -55,4 +54,4 @@ const PageLoader = () => {
   );
 };
 
-export default memo(PageLoader);
+export default PageLoader;

@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 import axiosInstance from "../../config/axios";
 import { useUser } from "../../contexts/user.context";
 
-const Header = ({ setShowPopup, setShowAvatarPopup }) => {
+const Header = ({ setCreatePopup, setAvatarPopup }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, setUser } = useUser();
@@ -40,12 +40,12 @@ const Header = ({ setShowPopup, setShowAvatarPopup }) => {
   }, [logoutMutation]);
 
   const openNewProjectPopup = useCallback(() => {
-    setShowPopup(true);
-  }, [setShowPopup]);
+    setCreatePopup(true);
+  }, [setCreatePopup]);
 
   const openAvatarPopup = useCallback(() => {
-    setShowAvatarPopup(true);
-  }, [setShowAvatarPopup]);
+    setAvatarPopup(true);
+  }, [setAvatarPopup]);
 
   return (
     <div className="h-[13%] lg:h-[10%] flex gap-6 sm:flex-row justify-between sm:items-center max-w-[85vw] mx-auto mb-6 lg:mb-10 relative z-10">

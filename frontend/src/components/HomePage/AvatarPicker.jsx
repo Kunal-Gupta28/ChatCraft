@@ -42,7 +42,6 @@ const AvatarPicker = ({ open, onClose }) => {
 
       const res = await axiosInstance.put("/setAvatar", {
         avatar: selected,
-        userId: user._id
       });
 
       if (res.status === 200) {

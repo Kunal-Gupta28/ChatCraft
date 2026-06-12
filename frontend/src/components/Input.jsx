@@ -4,6 +4,7 @@ const Input = ({
   placeholder,
   disabled,
   autoFocus,
+  onKeyDown
 }) => {
   return (
     <input
@@ -12,6 +13,7 @@ const Input = ({
       placeholder={placeholder}
       disabled={disabled}
       autoFocus={autoFocus}
+      onKeyDown={onKeyDown}
       className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg outline-none focus:border-blue-500 text-white"
     />
   );

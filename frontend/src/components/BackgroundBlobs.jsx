@@ -1,5 +1,3 @@
-import {memo} from 'react'
-
 const BackgroundBlobs = () => {
   return (
     <>
@@ -10,4 +8,4 @@ const BackgroundBlobs = () => {
   );
 };
 
-export default memo(BackgroundBlobs);
+export default BackgroundBlobs;
