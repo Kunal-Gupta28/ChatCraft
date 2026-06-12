@@ -71,7 +71,6 @@ module.exports.login = async ({ email, password }) => {
 // set avatar in projet database
 module.exports.setAvatar = async ({ avatar, userId }) => {
   try {
-    console.log(userId)
     if (!avatar || !userId) {
       throw new Error("avatar and userId are required");
     }

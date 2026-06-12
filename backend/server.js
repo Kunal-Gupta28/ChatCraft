@@ -22,13 +22,7 @@ const io = new Server(server, {
 // socket.io middleware
 io.use(async (socket, next) => {
   try {
-    // 1. Try cookie first
-    const cookies = cookie.parse(socket.handshake.headers.cookie || "");
-    let token = cookies.token;
-    // 2. Fallback to auth (Safari-safe)
-    if (!token) {
-      token = socket.handshake.auth.token;
-    }
+    let token = socket.handshake.auth.token;
 
     if (!token) {
       return next(new Error("Authentication error"));
