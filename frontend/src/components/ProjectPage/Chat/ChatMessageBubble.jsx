@@ -4,10 +4,10 @@ const ChatMessageBubble = ({ msg, isMine }) => {
 
   // time stamp
   const formattedTime = useMemo(() => {
-    if (!msg?.timestamp) return "";
-    const date = new Date(msg.timestamp);
+    if (!msg?.createdAt) return "";
+    const date = new Date(msg.createdAt);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }, [msg?.timestamp]);
+  }, [msg?.createdAt]);
 
   const messageContent = useMemo(() => {
     if (typeof msg.message === "string") return msg.message;

@@ -79,8 +79,6 @@ const Collaborators = ({ setShowUsers }) => {
       });
 
       if (res.status === 200) {
-        console.log(res.data);
-
         setProject((prev) => ({
           ...prev,
           users: [...prev.users, ...selectedUsers],
@@ -104,7 +102,6 @@ const Collaborators = ({ setShowUsers }) => {
         });
 
         if (res.status === 200) {
-          console.log(res.data);
           setProject((prev) => ({
             ...prev,
             users: prev.users.filter((u) => u._id !== userId),

@@ -81,6 +81,3 @@ router.put(
 router.delete("/delete/:projectId", isLoggedIn, deleteProject);
 
 module.exports = router;
-
-// if project doesnt exists rename
-//  old name = new name

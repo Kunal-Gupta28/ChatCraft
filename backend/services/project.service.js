@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const projectModel = require("../models/project.model");
+const { getFileNode, normalizeFileTree } = require("../utils/fileTree");
 
 // create project in database
 module.exports.createService = async ({ projectName, userId }) => {
@@ -108,31 +109,54 @@ module.exports.removeUserFromProject = async ({ projectId, userId }) => {
 };
 
 // get project by project id
-module.exports.getProjectById = async ({ projectId }) => {
+module.exports.getProjectById = async ({ projectId, userId }) => {
   if (!projectId) throw new Error("project id is required");
+  if (!userId) throw new Error("user id is required");
 
   if (!mongoose.Types.ObjectId.isValid(projectId))
     throw new Error("Invalid project id");
 
-  return projectModel
-    .findById(projectId)
-    .select("_id projectName owner users")
-    .populate("users", "_id profilePic username");
+  const project = await projectModel
+    .findOne({ _id: projectId, users: userId })
+    .select(
+      "_id projectName owner users fileTree buildCommand startCommand",
+    )
+    .populate("users", "_id profilePic username")
+    .lean();
+
+  if (!project) return null;
+  return { ...project, fileTree: normalizeFileTree(project.fileTree) };
 };
 
 // setting the file tree data in project database
-module.exports.setFileTree = async ({ projectId, fileTree }) => {
+module.exports.setFileTree = async ({
+  projectId,
+  fileTree,
+  buildCommand,
+  startCommand,
+  userId,
+}) => {
   if (!projectId || !fileTree)
     throw new Error("project id or fileTree is required");
 
   if (!mongoose.Types.ObjectId.isValid(projectId))
     throw new Error("Invalid project id");
 
-  return projectModel.findByIdAndUpdate(projectId, { fileTree }, { new: true });
+  const update = { fileTree: normalizeFileTree(fileTree) };
+  if (buildCommand) update.buildCommand = buildCommand;
+  if (startCommand) update.startCommand = startCommand;
+
+  const query = userId ? { _id: projectId, users: userId } : { _id: projectId };
+  return projectModel.findOneAndUpdate(query, update, { new: true });
 };
 
 // updating specific file in filetree ( in project database )
-module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
+module.exports.updateFileTree = async ({
+  projectId,
+  updatedfile,
+  newCode,
+  userId,
+}) => {
   if (!projectId || !updatedfile)
     throw new Error("project id or updated file is required");
 
@@ -140,21 +164,20 @@ module.exports.updateFileTree = async ({ projectId, updatedfile, newCode }) => {
     throw new Error("Invalid project id");
 
   // finding the project in database by proejct id
-  const project = await projectModel.findById(projectId);
-  if (!project) throw new Error("Project not found");
+  const project = await projectModel.findOne({
+    _id: projectId,
+    users: userId,
+  });
+  if (!project) throw new Error("Project not found or user not authorized");
 
-  // Check if file exists
-  if (!project.fileTree[updatedfile]) {
+  project.fileTree = normalizeFileTree(project.fileTree);
+
+  const fileNode = getFileNode(project.fileTree, updatedfile);
+  if (!fileNode) {
     throw new Error("File not found in fileTree");
   }
 
-  // Check structure
-  if (!project.fileTree[updatedfile].file) {
-    throw new Error("Invalid file structure. Missing .file object.");
-  }
-
-  // Update file contents
-  project.fileTree[updatedfile].file.contents = newCode;
+  fileNode.file.contents = newCode;
 
   // MUST add this because fileTree is a plain object
   project.markModified("fileTree");

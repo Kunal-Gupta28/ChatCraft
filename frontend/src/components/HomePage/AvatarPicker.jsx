@@ -21,7 +21,7 @@ const avatarOptions = [
 
 const AvatarPicker = ({ open, onClose }) => {
   // context api
-  const { user, setUser } = useUser();
+  const { setUser } = useUser();
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
 

@@ -104,7 +104,16 @@ module.exports.getProjectById = async (req, res) => {
   const { projectId } = req.params;
 
   try {
-    const project = await getProjectById({ projectId });
+    const project = await getProjectById({
+      projectId,
+      userId: req.user.userId,
+    });
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found or user not authorized",
+      });
+    }
     return res.status(200).json({ project });
   } catch (error) {
     return res.status(500).json({
@@ -128,9 +137,14 @@ module.exports.updateFileTree = async (req, res) => {
       projectId,
       updatedfile,
       newCode,
+      userId: req.user.userId,
     });
-    const updatedContent = updatedProject.fileTree[updatedfile].file.contents;
-    return res.status(200).json(updatedContent);
+    return res.status(200).json({
+      success: true,
+      updatedfile,
+      newCode,
+      projectId: updatedProject._id,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,

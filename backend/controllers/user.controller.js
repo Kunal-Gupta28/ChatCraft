@@ -4,8 +4,6 @@ const userModel = require("../models/user.model");
 const redisClient = require("../services/redis.service");
 
 const isProduction = process.env.NODE_ENV === "production";
-console.log(process.env.NODE_ENV);
-console.log(isProduction);
 
 // register an user
 module.exports.registerController = async (req, res) => {

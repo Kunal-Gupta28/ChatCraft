@@ -12,7 +12,7 @@ const ChatMessages = ({ chatEndRef }) => {
   const renderedMessages = useMemo(() => {
     return messages.map((msg) => ({
       ...msg,
-      isMine: msg.senderId === currentUserId,
+       isMine: String(msg.senderId || "") === String(currentUserId || ""),
     }));
   }, [messages, currentUserId]);
 

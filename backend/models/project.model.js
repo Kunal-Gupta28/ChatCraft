@@ -23,10 +23,18 @@ const projectSchema = new mongoose.Schema(
       type: Object,
       default: {},
     },
+    buildCommand: {
+      type: Object,
+      default: undefined,
+    },
+    startCommand: {
+      type: Object,
+      default: undefined,
+    },
   },
   {
     versionKey: false,
-  }
+  },
 );
 
 const Project = mongoose.model("Project", projectSchema);

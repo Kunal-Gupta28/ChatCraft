@@ -1,133 +1,172 @@
 import { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useUser } from "../contexts/user.context";
 import { useProject } from "../contexts/project.context";
 import { useMessages } from "../contexts/Messages.context";
 import { useCodeEditor } from "../contexts/codeEditor.context";
 import {
+  disconnectSocket,
   initializeSocket,
   receiveMessage,
 } from "../config/socket";
-import { getWebContainer } from "../config/webContainer";
+import {
+  getWebContainer,
+  teardownWebContainer,
+} from "../config/webContainer";
+import { normalizeFileTree, toWebContainerTree } from "../utils/fileTree";
 import ResponsiveLayout from "../components/ProjectPage/ResponsiveLayout";
 import axiosInstance from "../config/axios";
-import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+
+const mergeMessages = (current, incoming) => {
+  const merged = new Map();
+
+  for (const message of [...current, ...incoming]) {
+    const key = message._id
+      ? String(message._id)
+      : `${message.senderName}-${message.createdAt}-${message.message}`;
+    merged.set(key, message);
+  }
+
+  return [...merged.values()].sort(
+    (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+  );
+};
 
 const Project = () => {
   const { projectId } = useParams();
-
-  // context api
   const { setUser } = useUser();
-  const { project: currentProject, setProject } = useProject();
+  const { project, setProject } = useProject();
   const { setMessages } = useMessages();
-  const { fileTree,setFileTree, webContainer, setWebContainer } = useCodeEditor();
+  const { fileTree, setFileTree, webContainer, setWebContainer } =
+    useCodeEditor();
 
-  // load user data
-  const fetchUser = async () => {
-    const { data } = await axiosInstance.get("/getMe");
-    return data.user;
-  };
-
+    // fetch userdata 
   const { data: userData } = useQuery({
     queryKey: ["user"],
-    queryFn: fetchUser,
+    queryFn: async () => {
+      const { data } = await axiosInstance.get("/getMe");
+      return data.user;
+    },
   });
 
-  useEffect(() => {
-    if (userData) {
-      setUser(userData);
-    }
-  }, [userData, setUser]);
-
-  // load project data on refresh
-  const fetchProject = async () => {
-    const { data } = await axiosInstance.get(
-      `/project/get-project/${projectId}`
-    );
-    return data.project;
-  };
-
+  // fetch project data 
   const { data: projectData } = useQuery({
     queryKey: ["project", projectId],
-    queryFn: fetchProject,
-    enabled: !!projectId,
+    queryFn: async () => {
+      const { data } = await axiosInstance.get(
+        `/project/get-project/${projectId}`,
+      );
+      return data.project;
+    },
+    enabled: Boolean(projectId),
+  });
+
+  // fetch messages
+  const { data: messageHistory = [] } = useQuery({
+    queryKey: ["messages", projectId],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get(
+        `/project/messages/${projectId}`,
+      );
+      return data.messages;
+    },
+    enabled: Boolean(projectId),
   });
 
   useEffect(() => {
-    if (projectData) {
-      setProject(projectData);
-    }
-  }, [projectData, setProject]);
+    setMessages([]);
+  }, [projectId, setMessages]);
 
-  // Load saved file tree
   useEffect(() => {
-    if (currentProject?.fileTree) {
-      setFileTree(currentProject.fileTree);
-    }
-  }, [currentProject]);
+    if (userData) setUser(userData);
+  }, [setUser, userData]);
 
-  // Load WebContainer once
   useEffect(() => {
-    let isMounted = true;
+    if (!projectData) return;
+
+    const normalizedProject = {
+      ...projectData,
+      fileTree: normalizeFileTree(projectData.fileTree),
+    };
+    setProject(normalizedProject);
+    setFileTree(normalizedProject.fileTree);
+  }, [projectData, setFileTree, setProject]);
+
+  useEffect(() => {
+    if (messageHistory.length > 0) {
+      setMessages((current) => mergeMessages(current, messageHistory));
+    }
+  }, [messageHistory, setMessages]);
+
+  useEffect(() => {
+    let active = true;
 
     if (!webContainer) {
-      getWebContainer().then((container) => {
-        if (isMounted) setWebContainer(container);
-      });
+      getWebContainer()
+        .then((container) => {
+          if (active) setWebContainer(container);
+        })
+        .catch((error) => console.error("WebContainer boot failed:", error));
     }
 
     return () => {
-      isMounted = false;
+      active = false;
+    };
+  }, [setWebContainer, webContainer]);
+
+  useEffect(() => {
+    if (!project?._id) return undefined;
+
+    initializeSocket(project._id);
+
+    const cleanups = [
+      receiveMessage("project-message", (message) => {
+        setMessages((current) => mergeMessages(current, [message]));
+      }),
+      receiveMessage("project-files-updated", (payload) => {
+        const nextFileTree = normalizeFileTree(payload.fileTree);
+        setFileTree(nextFileTree);
+        setProject((current) => ({
+          ...current,
+          fileTree: nextFileTree,
+          buildCommand: payload.buildCommand,
+          startCommand: payload.startCommand,
+        }));
+      }),
+      receiveMessage("project-message-error", (error) => {
+        console.error("Message error:", error.message);
+      }),
+    ];
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup?.());
+      disconnectSocket();
+    };
+  }, [project?._id, setFileTree, setMessages, setProject]);
+
+  useEffect(() => {
+    if (!webContainer || !fileTree) return undefined;
+
+    let active = true;
+    webContainer.mount(toWebContainerTree(fileTree)).catch((error) => {
+      if (active) console.error("WebContainer mount failed:", error);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [fileTree, webContainer]);
+
+  useEffect(() => {
+    if (webContainer) getWebContainer();
+
+    return () => {
+      if (webContainer) teardownWebContainer(webContainer);
     };
   }, [webContainer]);
 
-  // Setup Socket for messages
-  useEffect(() => {
-    if (!currentProject?._id) return;
-
-    const socket = initializeSocket(currentProject._id);
-
-    const receiveHandler = (data) => {
-      try {
-        const { senderName, message } = data;
-
-        setMessages((prev) => {
-          if (senderName === "AI") {
-            if (message?.fileTree) setFileTree(message.fileTree);
-            return [...prev, { ...data, message: message?.text || "" }];
-          }
-          return [...prev, data];
-        });
-      } catch (err) {
-        console.error("Invalid message:", data, err);
-      }
-    };
-
-    const cleanup = receiveMessage("project-message", receiveHandler);
-
-    return () => {
-      cleanup?.();
-      socket?.disconnect(); 
-    };
-  }, [currentProject?._id, setMessages]);
-
-  // Mount file structure
-  useEffect(() => {
-    if (webContainer && fileTree) {
-      webContainer.mount(fileTree);
-    }
-  }, [webContainer, fileTree]);
-
-  // Teardown previous instance
-  useEffect(() => {
-    return () => {
-      webContainer?.teardown?.();
-    };
-  }, [webContainer]);
-
-  return (
-    <ResponsiveLayout/>
-  );
+  return <ResponsiveLayout />;
 };
 
 export default Project;

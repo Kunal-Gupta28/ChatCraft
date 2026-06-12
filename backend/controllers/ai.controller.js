@@ -11,7 +11,13 @@ module.exports.getResult = async (req,res) =>{
 
         // if result contains file tree then save it in database
         if(result.fileTree){
-            setFileTree({projectId,fileTree:result.fileTree})
+            await setFileTree({
+                projectId,
+                fileTree: result.fileTree,
+                buildCommand: result.buildCommand,
+                startCommand: result.startCommand,
+                userId: req.user.userId,
+            })
         }
 
         return res.status(200).json({result});

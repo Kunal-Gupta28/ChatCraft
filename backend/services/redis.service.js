@@ -7,11 +7,11 @@ const redisClient = new Redis({
 });
 
 redisClient.on("connect", () => {
-  console.log("✅ Redis is connected successfully");
+  console.log("Redis is connected successfully");
 });
 
 redisClient.on("error", (err) => {
-  console.error("❌ Redis connection error:", err);
+  console.error("Redis connection error:", err);
 });
 
 module.exports = redisClient;

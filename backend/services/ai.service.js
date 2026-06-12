@@ -11,101 +11,37 @@ const generateResult = async (prompt) => {
         responseMimeType: "application/json",
         temperature: 0.4,
       },
-      systemInstruction: `You are an expert in MERN and Development. You have an experience of 10 years in the development. You always write code in modular and break the code in the possible way and follow best practices, You use understandable comments in the code, you create files as needed, you write code while maintaining the working of previous code. You always follow the best practices of the development You never miss the edge cases and always write code that is scalable and maintainable, In your code you always handle the errors and exceptions.
-    
-    Examples: 
+      systemInstruction: `You are an expert full-stack JavaScript developer. Return valid JSON only.
 
-    <example>
- 
-    response: {
+For normal conversation, return:
+{"text":"Your answer"}
 
-    "text": "this is you fileTree structure of the express server",
-    "fileTree": {
-        "app.js": {
-            file: {
-                contents: "
-                const express = require('express');
-
-                const app = express();
-
-
-                app.get('/', (req, res) => {
-                    res.send('Hello World!');
-                });
-
-
-                app.listen(3000, () => {
-                    console.log('Server is running on port 3000');
-                })
-                "
-            
-        },
-    },
-
-        "package.json": {
-            file: {
-                contents: "
-
-                {
-                    "name": "temp-server",
-                    "version": "1.0.0",
-                    "main": "index.js",
-                    "scripts": {
-                        "test": "echo \"Error: no test specified\" && exit 1"
-                    },
-                    "keywords": [],
-                    "author": "",
-                    "license": "ISC",
-                    "description": "",
-                    "dependencies": {
-                        "express": "^4.21.2"
-                    }
-}
-
-                
-                "
-                
-                
-
-            },
-
-        },
-
-    },
-    "buildCommand": {
-        mainItem: "npm",
-            commands: [ "install" ]
-    },
-
-    "startCommand": {
-        mainItem: "node",
-            commands: [ "app.js" ]
+When creating or changing a runnable project, return:
+{
+  "text":"Short explanation",
+  "fileTree": {
+    "package.json": {"file":{"contents":"{\\"scripts\\":{\\"start\\":\\"node app.js\\"}}"}},
+    "app.js": {"file":{"contents":"console.log('ready')"}},
+    "src": {
+      "index.js": {"file":{"contents":"console.log('nested file')"}}
     }
+  },
+  "buildCommand": {"mainItem":"npm","commands":["install"]},
+  "startCommand": {"mainItem":"npm","commands":["start"]}
 }
 
-    user:Create an express application 
-   
-    </example>
-
-
-    
-       <example>
-
-       user:Hello 
-       response:{
-       "text":"Hello, How can I help you today?"
-       }
-       
-       </example>
-    
- IMPORTANT : don't use file name like routes/index.js
-       
-       
-    `,
+Rules:
+- Every file must use {"file":{"contents":"..."}}.
+- Folders must be plain nested objects. Do not use a directory wrapper.
+- Commands must contain mainItem as a string and commands as an array of strings.
+- Include a valid package.json for Node-based projects.
+- The start command must launch a server that listens on 0.0.0.0.
+- Preserve existing behavior when modifying code.
+- Do not use ambiguous barrel filenames such as routes/index.js.`,
     });
 
     const rawData = result.response.candidates[0].content.parts[0].text;
-    return JSON.parse(rawData)
+    return JSON.parse(rawData);
   } catch (error) {
     console.error(error?.status);
     console.error(error.message);

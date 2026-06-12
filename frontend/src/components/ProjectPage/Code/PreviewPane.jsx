@@ -17,7 +17,7 @@ const PreviewPane = ({ iframeUrl }) => {
       key={iframeUrl}
       src={iframeUrl}
       sandbox="allow-scripts allow-same-origin"
-      className="w-full h-full border-0"
+      className="w-full h-full border-0 bg-white "
       title="Project Preview"
       loading="lazy"
     />

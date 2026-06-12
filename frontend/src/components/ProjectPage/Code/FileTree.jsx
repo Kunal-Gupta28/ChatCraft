@@ -1,5 +1,71 @@
-import { memo, useCallback } from "react";
+import { memo, useMemo } from "react";
 import { Folder, FolderOpen, FileCode2 } from "lucide-react";
+import { isFileNode, normalizeFileTree } from "../../../utils/fileTree";
+
+const TreeNodes = ({
+  node,
+  basePath,
+  activeFile,
+  disabled,
+  openFolders,
+  onFileSelect,
+  onFolderToggle,
+}) =>
+  Object.entries(node).map(([name, value]) => {
+    const fullPath = basePath ? `${basePath}/${name}` : name;
+
+    if (isFileNode(value)) {
+      const isActive = activeFile === fullPath;
+      return (
+        <button
+          type="button"
+          key={fullPath}
+          disabled={disabled}
+          onClick={() => onFileSelect(fullPath)}
+          className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-sm transition-colors
+            ${isActive ? "bg-gray-700 text-white" : "text-gray-300 hover:bg-gray-700/40"}
+            ${disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
+        >
+          <FileCode2 size={16} className="flex-shrink-0 text-blue-400" />
+          <span className="truncate">{name}</span>
+        </button>
+      );
+    }
+
+    const isOpen = Boolean(openFolders[fullPath]);
+    return (
+      <div key={fullPath}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onFolderToggle(fullPath)}
+          className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-sm text-gray-300
+            ${disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:bg-gray-700/30"}`}
+        >
+          {isOpen ? (
+            <FolderOpen size={16} className="flex-shrink-0 text-yellow-400" />
+          ) : (
+            <Folder size={16} className="flex-shrink-0 text-yellow-400" />
+          )}
+          <span className="truncate">{name}</span>
+        </button>
+
+        {isOpen && (
+          <div className="ml-4 border-l border-gray-700 pl-3">
+            <TreeNodes
+              node={value}
+              basePath={fullPath}
+              activeFile={activeFile}
+              disabled={disabled}
+              openFolders={openFolders}
+              onFileSelect={onFileSelect}
+              onFolderToggle={onFolderToggle}
+            />
+          </div>
+        )}
+      </div>
+    );
+  });
 
 const FileTree = ({
   tree,
@@ -9,113 +75,39 @@ const FileTree = ({
   setOpenFolders,
   onFileSelect,
 }) => {
-  const isPreview = activeTab === "preview";
-  const isEmpty = !tree || Object.keys(tree).length === 0;
+  const normalizedTree = useMemo(() => normalizeFileTree(tree), [tree]);
+  const disabled = activeTab === "preview";
+  const isEmpty = Object.keys(normalizedTree).length === 0;
 
-  /** Toggle folder */
-  const toggleFolder = useCallback((path) => {
-    if (isPreview) return;
-
-    setOpenFolders((prev) => ({
-      ...prev,
-      [path]: !prev[path],
+  const handleFolderToggle = (path) => {
+    setOpenFolders((current) => ({
+      ...current,
+      [path]: !current[path],
     }));
-  }, [isPreview, setOpenFolders]);
-
-  /** Render a file */
-  const FileItem = memo(({ name, fullPath }) => {
-    const isActive = activeFile === fullPath;
-
-    const handleClick = useCallback(() => {
-      if (!isPreview) onFileSelect(fullPath);
-    }, [isPreview, onFileSelect, fullPath]);
-
-    return (
-      <div
-        onClick={handleClick}
-        className={`flex items-center gap-2 py-1 px-2 rounded-md text-sm truncate transition-colors select-none
-          ${
-            isActive
-              ? "bg-gray-700 text-white"
-              : "hover:bg-gray-700/40 text-gray-300 cursor-pointer"
-          }
-          ${isPreview && "opacity-40 cursor-not-allowed"}
-        `}
-      >
-        <FileCode2 size={16} className="text-blue-400 flex-shrink-0" />
-        <span className="truncate">{name}</span>
-      </div>
-    );
-  });
-
-  /** Render a folder */
-  const FolderItem = memo(({ name, value, fullPath }) => {
-    const isOpen = openFolders[fullPath];
-
-    const handleToggle = useCallback(() => {
-      toggleFolder(fullPath);
-    }, [toggleFolder, fullPath]);
-
-    return (
-      <div>
-        {/* Folder header */}
-        <div
-          onClick={handleToggle}
-          className={`flex items-center gap-2 py-1 px-2 rounded-md text-sm truncate select-none
-            ${isPreview ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-700/30 cursor-pointer"}
-            text-gray-300
-          `}
-        >
-          {isOpen ? (
-            <FolderOpen size={16} className="text-yellow-400" />
-          ) : (
-            <Folder size={16} className="text-yellow-400" />
-          )}
-          <span className="truncate">{name}</span>
-        </div>
-
-        {/* Render children */}
-        {isOpen && (
-          <div className="ml-4 border-l border-gray-700 pl-3">
-            {renderTree(value, fullPath)}
-          </div>
-        )}
-      </div>
-    );
-  });
-
-  /** Recursively render tree structure */
-  const renderTree = useCallback((node, base = "") => {
-    return Object.entries(node).map(([name, value]) => {
-      const fullPath = base ? `${base}/${name}` : name;
-
-      return value.file ? (
-        <FileItem key={fullPath} name={name} fullPath={fullPath} />
-      ) : (
-        <FolderItem
-          key={fullPath}
-          name={name}
-          value={value}
-          fullPath={fullPath}
-        />
-      );
-    });
-  }, [FileItem, FolderItem]);
+  };
 
   return (
-    <aside className="h-full w-full border-r border-gray-700 bg-gray-900/40 overflow-y-auto p-3">
-      {/* Heading text */}
-      <h2 className="text-gray-200 font-medium text-sm mb-3 p-2 tracking-wide select-none">
+    <aside className="h-full w-full overflow-y-auto border-r border-gray-700 bg-gray-900/40 p-3">
+      <h2 className="mb-3 select-none p-2 text-sm font-medium tracking-wide text-gray-200">
         FILES
       </h2>
 
-      {/* if file tree is Empty then show text otherwise show files */}
       {isEmpty ? (
-        <div className="text-gray-500 text-sm px-2 py-2 italic select-none">
-          No files in this project
+        <div className="select-none px-2 py-2 text-sm italic text-gray-500">
+          No files
         </div>
       ) : (
-        <div className="space-y-1">{renderTree(tree)}</div>
+        <div className="space-y-1">
+          <TreeNodes
+            node={normalizedTree}
+            basePath=""
+            activeFile={activeFile}
+            disabled={disabled}
+            openFolders={openFolders}
+            onFileSelect={onFileSelect}
+            onFolderToggle={handleFolderToggle}
+          />
+        </div>
       )}
     </aside>
   );

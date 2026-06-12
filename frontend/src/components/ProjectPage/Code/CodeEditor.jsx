@@ -1,22 +1,65 @@
-import { useState, useMemo, useCallback, useEffect, memo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axiosInstance from "../../../config/axios";
 import { useProject } from "../../../contexts/project.context";
 import { useCodeEditor } from "../../../contexts/codeEditor.context";
+import {
+  applyFileChanges,
+  flattenFileTree,
+  toWebContainerTree,
+} from "../../../utils/fileTree";
 import FileTree from "./FileTree";
 import TabsBar from "./TabsBar";
 import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
 import debounce from "./utils/debounce";
 
+const parseCommand = (command) => {
+  if (!command?.mainItem || !Array.isArray(command.commands)) return null;
+  return { command: command.mainItem, args: command.commands };
+};
+
+const inferCommands = (files) => {
+  let packageJson;
+  try {
+    packageJson = JSON.parse(files["package.json"] || "null");
+  } catch {
+    packageJson = null;
+  }
+
+  const hasDependencies = Boolean(
+    packageJson?.dependencies || packageJson?.devDependencies,
+  );
+  const build = hasDependencies ? { command: "npm", args: ["install"] } : null;
+
+  if (packageJson?.scripts?.start) {
+    return { build, start: { command: "npm", args: ["start"] } };
+  }
+  if (packageJson?.scripts?.dev) {
+    return {
+      build,
+      start: {
+        command: "npm",
+        args: ["run", "dev", "--", "--host", "0.0.0.0"],
+      },
+    };
+  }
+  if (packageJson?.main) {
+    return { build, start: { command: "node", args: [packageJson.main] } };
+  }
+  if (files["app.js"] !== undefined) {
+    return { build, start: { command: "node", args: ["app.js"] } };
+  }
+
+  return { build, start: null };
+};
+
 const CodeEditor = () => {
-  // context api
   const { project } = useProject();
   const { fileTree, webContainer } = useCodeEditor();
+  const runProcessRef = useRef(null);
+  const runAttemptRef = useRef(0);
+  const listenerCleanupRef = useRef([]);
 
-  // refs
-  const openFilesRef = useRef([]);
-
-  // state variable
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
   const [code, setCode] = useState("");
@@ -25,30 +68,21 @@ const CodeEditor = () => {
   const [iframeUrl, setIframeUrl] = useState(null);
   const [activeTab, setActiveTab] = useState("code");
   const [isRunning, setIsRunning] = useState(false);
+  const [runError, setRunError] = useState("");
   const [showFiles, setShowFiles] = useState(false);
 
-  // keep ref in sync
+  const fileContentMap = useMemo(() => flattenFileTree(fileTree), [fileTree]);
+
   useEffect(() => {
-    openFilesRef.current = openFiles;
-  }, [openFiles]);
+    setModifiedFiles({});
+    setOpenFiles((current) =>
+      current.filter((filePath) => fileContentMap[filePath] !== undefined),
+    );
+    setActiveFile((current) =>
+      current && fileContentMap[current] !== undefined ? current : null,
+    );
+  }, [fileContentMap]);
 
-  // Flatten project file tree
-  const fileContentMap = useMemo(() => {
-    if (!fileTree) return {};
-
-    const map = {};
-    const walk = (node, base = "") => {
-      for (const [name, val] of Object.entries(node)) {
-        const full = base ? `${base}/${name}` : name;
-        if (val.file) map[full] = val.file.contents;
-        else walk(val, full);
-      }
-    };
-    walk(fileTree);
-    return map;
-  }, [fileTree]);
-
-  // send request to server for update the code of file tree in database, 0.8 sec later when the user stop typing
   const debouncedSave = useMemo(() => {
     if (!project?._id) return debounce(() => {}, 800);
 
@@ -59,127 +93,191 @@ const CodeEditor = () => {
           updatedfile: path,
           newCode: content,
         })
-        .catch((err) => console.log(err));
+        .catch((error) => console.error("File save failed:", error));
     }, 800);
   }, [project?._id]);
 
-  // cancel debouncesave
-  useEffect(() => {
-    return () => debouncedSave.cancel?.();
-  }, [debouncedSave]);
+  useEffect(() => () => debouncedSave.cancel?.(), [debouncedSave]);
 
-  // open file
   const openFile = useCallback((filePath) => {
-    setOpenFiles((prev) => {
-      if (prev.includes(filePath)) return prev;
-      return [...prev, filePath];
-    });
-
+    setOpenFiles((current) =>
+      current.includes(filePath) ? current : [...current, filePath],
+    );
     setActiveFile(filePath);
-    setCode((prev) => prev ?? "");
     setShowFiles(false);
   }, []);
 
-  // sync code when activeFile changes
   useEffect(() => {
-    if (!activeFile) return;
+    if (!activeFile) {
+      setCode("");
+      return;
+    }
+
     setCode(modifiedFiles[activeFile] ?? fileContentMap[activeFile] ?? "");
-  }, [activeFile, modifiedFiles, fileContentMap]);
+  }, [activeFile, fileContentMap, modifiedFiles]);
 
-  // close tab
-  const closeFile = useCallback((filePath) => {
-    setOpenFiles((prev) => {
-      const updated = prev.filter((f) => f !== filePath);
+  const closeFile = useCallback(
+    (filePath) => {
+      setOpenFiles((current) => {
+        const updated = current.filter((file) => file !== filePath);
+        if (activeFile === filePath) setActiveFile(updated[0] || null);
+        return updated;
+      });
+    },
+    [activeFile],
+  );
 
-      if (activeFile === filePath) {
-        if (updated.length > 0) {
-          const next = updated[0];
-          setActiveFile(next);
-        } else {
-          setActiveFile(null);
-          setCode("");
+  const updateCode = useCallback(
+    (path, newCode) => {
+      const contents = newCode ?? "";
+      setCode(contents);
+      setModifiedFiles((current) => ({ ...current, [path]: contents }));
+      debouncedSave(path, contents);
+
+      webContainer?.fs
+        .writeFile(`/${path}`, contents)
+        .catch((error) => console.error("WebContainer write failed:", error));
+    },
+    [debouncedSave, webContainer],
+  );
+
+  const clearRunListeners = useCallback(() => {
+    listenerCleanupRef.current.forEach((cleanup) => cleanup());
+    listenerCleanupRef.current = [];
+  }, []);
+
+  const runProject = useCallback(async () => {
+    if (!webContainer || !fileTree || isRunning) return;
+
+    const attempt = ++runAttemptRef.current;
+    setIsRunning(true);
+    setRunError("");
+    setIframeUrl(null);
+    clearRunListeners();
+    runProcessRef.current?.kill();
+    runProcessRef.current = null;
+
+    const runtimeTree = applyFileChanges(fileTree, modifiedFiles);
+    const runtimeFiles = flattenFileTree(runtimeTree);
+    const inferred = inferCommands(runtimeFiles);
+    const buildCommand = parseCommand(project?.buildCommand) || inferred.build;
+    const startCommand = parseCommand(project?.startCommand) || inferred.start;
+
+    try {
+      if (!startCommand) throw new Error("No runnable start command was found");
+
+      await webContainer.mount(toWebContainerTree(runtimeTree));
+
+      if (buildCommand) {
+        const buildProcess = await webContainer.spawn(
+          buildCommand.command,
+          buildCommand.args,
+        );
+        // buildProcess.output.pipeTo(new WritableStream({ write() {} }));
+
+        const process = await webContainer.spawn(
+          startCommand.command,
+          startCommand.args,
+        );
+
+        // process.output.pipeTo(new WritableStream({ write() {} }));
+
+        process.output.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              console.log("[START]", chunk);
+            },
+          }),
+        );
+
+        runProcessRef.current = process;
+
+        const exitCode = await buildProcess.exit;
+        if (exitCode !== 0) {
+          throw new Error(`Build command exited with code ${exitCode}`);
         }
       }
 
-      return updated;
-    });
-  }, [activeFile]);
+      let serverReady = false;
+      const stopReadyListener = webContainer.on("server-ready", (_, url) => {
+        if (attempt !== runAttemptRef.current) return;
+        serverReady = true;
+        setIframeUrl(url);
+        setActiveTab("preview");
+        setIsRunning(false);
+      });
+      const stopErrorListener = webContainer.on("error", (error) => {
+        if (attempt !== runAttemptRef.current) return;
+        setRunError(error.message || "WebContainer failed to run the project");
+        setIsRunning(false);
+      });
+      listenerCleanupRef.current = [stopReadyListener, stopErrorListener];
 
-  // on update code call debouncedSave function
-  const updateCode = useCallback((path, newCode) => {
-    const safe = newCode ?? "";
-    setCode(safe);
-
-    setModifiedFiles((prev) => ({
-      ...prev,
-      [path]: safe,
-    }));
-
-    debouncedSave(path, safe);
-  }, [debouncedSave]);
-
-  // run webcontainer
-  const runProject = useCallback(async () => {
-    if (!webContainer) return;
-
-    setIsRunning(true);
-    setIframeUrl(null);
-
-    const cleanup = () => {
-      webContainer.off("server-ready", onReady);
-      webContainer.off("error", onError);
-    };
-
-    const onReady = (_, url) => {
-      setIframeUrl(url);
-      setIsRunning(false);
-      cleanup();
-    };
-
-    const onError = (err) => {
-      console.error(err);
-      setIsRunning(false);
-      cleanup();
-    };
-
-    webContainer.on("server-ready", onReady);
-    webContainer.on("error", onError);
-
-    try {
-      const install = await webContainer.spawn("npm", ["install"]);
-      await install.exit;
-
-      const run = await webContainer.spawn("npm", ["start"]);
-      run.output.pipeTo(new WritableStream({ write() {} }));
-    } catch (err) {
-      onError(err);
+      const process = await webContainer.spawn(
+        startCommand.command,
+        startCommand.args,
+      );
+      runProcessRef.current = process;
+      process.output.pipeTo(new WritableStream({ write() {} }));
+      process.exit.then((exitCode) => {
+        if (
+          attempt === runAttemptRef.current &&
+          !serverReady &&
+          exitCode !== 0
+        ) {
+          setRunError(`Start command exited with code ${exitCode}`);
+          setIsRunning(false);
+        }
+      });
+    } catch (error) {
+      if (attempt === runAttemptRef.current) {
+        setRunError(error.message || "Project failed to run");
+        setIsRunning(false);
+      }
     }
-  }, [webContainer]);
+  }, [
+    clearRunListeners,
+    fileTree,
+    isRunning,
+    modifiedFiles,
+    project?.buildCommand,
+    project?.startCommand,
+    webContainer,
+  ]);
+
+  useEffect(
+    () => () => {
+      runAttemptRef.current += 1;
+      clearRunListeners();
+      runProcessRef.current?.kill();
+    },
+    [clearRunListeners],
+  );
 
   return (
-    <main className="h-full w-full flex flex-col md:flex-row bg-transparent text-gray-300 overflow-hidden">
-      {/* MOBILE FULL-SCREEN FILE PANEL */}
+    <main className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-gray-300 md:flex-row">
+      {runError && (
+        <div className="absolute left-1/2 top-16 z-40 max-w-[80%] -translate-x-1/2 rounded-md bg-red-950/95 px-4 py-2 text-sm text-red-200 shadow-lg">
+          {runError}
+        </div>
+      )}
+
       <div
-        className={`
-          fixed inset-0 z-50 bg-black/60 md:hidden 
-          transition-opacity duration-300
-          ${
-            showFiles
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }
-        `}
+        className={`fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 md:hidden ${
+          showFiles
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
         onClick={() => setShowFiles(false)}
       >
         <div
-          className={`
-            absolute left-0 top-0 h-full w-3/4 bg-gray-900 border-r border-gray-800 p-2
-            transition-transform duration-300
-            ${showFiles ? "translate-x-0" : "-translate-x-full"}
-          `}
-          onClick={(e) => e.stopPropagation()}
+          className={`absolute left-0 top-0 h-full w-3/4 border-r border-gray-800 bg-gray-900 p-2 transition-transform duration-300 ${
+            showFiles ? "translate-x-0" : "-translate-x-full"
+          }`}
+          onClick={(event) => event.stopPropagation()}
         >
           <FileTree
+            tree={fileTree}
             activeFile={activeFile}
             activeTab={activeTab}
             openFolders={openFolders}
@@ -189,9 +287,9 @@ const CodeEditor = () => {
         </div>
       </div>
 
-      {/* DESKTOP STICKY FILE TREE */}
-      <div className="hidden md:block lg:w-[180px] 2xl:w-[200px] h-full border-r border-gray-800 bg-gray-900">
+      <div className="hidden h-full border-r border-gray-800 bg-gray-900 md:block lg:w-[180px] 2xl:w-[200px]">
         <FileTree
+          tree={fileTree}
           activeFile={activeFile}
           activeTab={activeTab}
           openFolders={openFolders}
@@ -200,8 +298,7 @@ const CodeEditor = () => {
         />
       </div>
 
-      {/* Tabs + Code / Preview */}
-      <div className="flex-1 h-full flex flex-col">
+      <div className="flex h-full flex-1 flex-col">
         <TabsBar
           openFiles={openFiles}
           activeFile={activeFile}
@@ -215,7 +312,7 @@ const CodeEditor = () => {
           setShowFiles={setShowFiles}
         />
 
-        <div className="flex-1 h-full">
+        <div className="h-full flex-1">
           {activeTab === "code" ? (
             <EditorPane
               activeFile={activeFile}
