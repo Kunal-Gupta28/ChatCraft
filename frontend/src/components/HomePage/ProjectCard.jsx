@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Folder,
@@ -21,25 +21,46 @@ const itemVariants = {
 
 const ProjectCard = ({ project, isOwner, onOpen, onDelete, onRename }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu on click outside anywhere on the document
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // menu toggle
-  const toggleMenu = useCallback(() => {
+  const toggleMenu = useCallback((e) => {
+    e.stopPropagation();
     setMenuOpen((prev) => !prev);
   }, []);
 
   // open menu
   const handleOpen = useCallback(() => {
-    if (!menuOpen) onOpen();
-  }, [menuOpen, onOpen]);
+    if (!menuOpen) onOpen(project);
+  }, [menuOpen, onOpen, project]);
 
   // rename handler
   const handleRename = useCallback(
     (e) => {
       e.stopPropagation();
       setMenuOpen(false);
-      onRename();
+      onRename(project);
     },
-    [onRename],
+    [onRename, project],
   );
 
   // delete handler
@@ -47,88 +68,76 @@ const ProjectCard = ({ project, isOwner, onOpen, onDelete, onRename }) => {
     (e) => {
       e.stopPropagation();
       setMenuOpen(false);
-      onDelete();
+      onDelete(project);
     },
-    [onDelete],
+    [onDelete, project],
   );
-
-  // three dot click handler
-  const handleMenuClick = useCallback((e) => {
-    e.stopPropagation();
-  }, []);
 
   return (
     <motion.div
       variants={itemVariants}
-      // open project only when menu is not open
       onClick={handleOpen}
-      className="bg-gray-800/40 h-[160px] backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-2 hover:shadow-lg hover:shadow-blue-500/10 group relative"
+      className="bg-gray-800/40 h-[160px] backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-1.5 hover:shadow-lg hover:shadow-blue-500/10 group relative"
     >
       {/* top row */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* folder icon */}
-          <Folder className="text-blue-400 drop-shadow" size={26} />
+          <Folder className="text-blue-400 drop-shadow shrink-0" size={26} />
 
           {/* folder name */}
-          <h2 className="text-xl font-semibold truncate tracking-wide">
+          <h2 className="text-xl font-semibold truncate tracking-wide w-full text-white">
             {project.projectName}
           </h2>
         </div>
 
         {/* three dots button (only owner can see this) */}
         {isOwner ? (
-          <div
-            className="relative w-8 h-8 flex justify-center items-center rounded-full cursor-pointer"
-            onClick={handleMenuClick}
-          >
-            <MoreVertical
-              size={20}
-              className="text-gray-400 hover:text-white transition cursor-pointer"
+          <div className="relative z-20" ref={menuRef}>
+            <button
+              type="button"
+              aria-label="Project actions"
               onClick={toggleMenu}
-            />
+              className="w-8 h-8 flex justify-center items-center rounded-xl hover:bg-gray-700/60 active:scale-95 transition cursor-pointer text-gray-400 hover:text-white"
+            >
+              <MoreVertical size={18} />
+            </button>
 
-            {/* rename and delete button */}
+            {/* rename and delete menu */}
             {menuOpen && (
-              <>
-                {/* backdrop to close menu on outside click without navigating */}
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setMenuOpen(false)}
-                ></div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.12 }}
-                  className="absolute right-0 mt-2 z-40 bg-[#0d0d0d] border border-[#1f1f1f] shadow-2xl shadow-black/60 rounded-2xl"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                transition={{ duration: 0.12 }}
+                className="absolute right-0 top-full mt-1.5 z-50 bg-[#0b0f17] border border-slate-700/80 shadow-2xl shadow-black/90 rounded-xl py-1.5 min-w-[130px] overflow-hidden backdrop-blur-2xl ring-1 ring-white/10"
+              >
+                {/* rename button */}
+                <button
+                  type="button"
+                  onClick={handleRename}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
                 >
-                  {/* rename button */}
-                  <button
-                    onClick={handleRename}
-                    className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#1a1a1a] transition text-gray-200 cursor-pointer"
-                  >
-                    <Pencil size={15} className="text-gray-400" />
-                    Rename
-                  </button>
+                  <Pencil size={14} className="text-slate-400" />
+                  Rename
+                </button>
 
-                  {/* delete button */}
-                  <button
-                    onClick={handleDelete}
-                    className="flex items-center gap-3 w-full px-8 py-2.5 text-sm hover:bg-[#2a0f0f] transition text-red-400 cursor-pointer"
-                  >
-                    <Trash2 size={15} className="text-red-400" />
-                    Delete
-                  </button>
-                </motion.div>
-              </>
+                {/* delete button */}
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15 transition cursor-pointer"
+                >
+                  <Trash2 size={14} className="text-red-400" />
+                  Delete
+                </button>
+              </motion.div>
             )}
           </div>
         ) : null}
       </div>
 
-      {/* user icon and number of members in project*/}
+      {/* user icon and number of members in project */}
       <div className="flex items-center gap-2 text-gray-400 text-sm mb-6">
         <Users size={16} className="opacity-80" />
         <span className="tracking-wide">{project.memberCount} members</span>

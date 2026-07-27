@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "../contexts/user.context";
@@ -41,7 +41,9 @@ const Project = () => {
   const { fileTree, setFileTree, webContainer, setWebContainer } =
     useCodeEditor();
 
-    // fetch userdata 
+  const mountedRef = useRef(false);
+
+  // fetch userdata 
   const { data: userData } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
@@ -85,12 +87,13 @@ const Project = () => {
   useEffect(() => {
     if (!projectData) return;
 
+    const normalizedFileTree = normalizeFileTree(projectData.fileTree);
     const normalizedProject = {
       ...projectData,
-      fileTree: normalizeFileTree(projectData.fileTree),
+      fileTree: normalizedFileTree,
     };
     setProject(normalizedProject);
-    setFileTree(normalizedProject.fileTree);
+    setFileTree(normalizedFileTree);
   }, [projectData, setFileTree, setProject]);
 
   useEffect(() => {
@@ -145,13 +148,18 @@ const Project = () => {
     };
   }, [project?._id, setFileTree, setMessages, setProject]);
 
+  // Mount fileTree into webContainer safely without re-mounting thrash
   useEffect(() => {
-    if (!webContainer || !fileTree) return undefined;
+    if (!webContainer || !fileTree || mountedRef.current) return undefined;
 
     let active = true;
-    webContainer.mount(toWebContainerTree(fileTree)).catch((error) => {
-      if (active) console.error("WebContainer mount failed:", error);
-    });
+    webContainer.mount(toWebContainerTree(fileTree))
+      .then(() => {
+        if (active) mountedRef.current = true;
+      })
+      .catch((error) => {
+        if (active) console.error("WebContainer mount failed:", error);
+      });
 
     return () => {
       active = false;
@@ -159,8 +167,6 @@ const Project = () => {
   }, [fileTree, webContainer]);
 
   useEffect(() => {
-    if (webContainer) getWebContainer();
-
     return () => {
       if (webContainer) teardownWebContainer(webContainer);
     };

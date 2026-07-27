@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
-/* Hide scrollbar but keep scroll functionality */
-.scrollbar-hide::-webkit-scrollbar {
+/* Hide scrollbar globally but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-.scrollbar-hide {
+.scrollbar-hide,
+.hide-scrollbar {
   /* IE and Edge */
   -ms-overflow-style: none;
   /* Firefox */
@@ -19,25 +21,32 @@
   @apply font-mono;
 }
 
+html,
 body {
-  background-color: #030712;
+  background-color: #080b11;
+  color: #f8fafc;
+  min-height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Hide scrollbar only for large screens */
-@media (min-width: 1024px) {
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
+/* Custom linear glassmorphic card utility */
+.glass-panel {
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel:hover {
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .project-grid {
   display: grid;
-  gap: 1.5rem;
-  padding-top: 1rem;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
   padding-bottom: 3rem;
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -65,10 +74,10 @@ body {
   }
 }
 
-/* lg */
+/* lg (with left sidebar) */
 @media (min-width: 1024px) {
   .project-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .chatBox_size {
@@ -83,7 +92,7 @@ body {
 /* xl */
 @media (min-width: 1280px) {
   .project-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .chatBox_size {
@@ -95,62 +104,9 @@ body {
   }
 }
 
-/* 3xl */
-@media (min-width: 1792px) {
+/* 2xl */
+@media (min-width: 1536px) {
   .project-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 25%;
-  }
-
-  .codeEditor_size {
-    width: 75%;
-  }
-}
-
-/* 4xl */
-@media (min-width: 2048px) {
-  .project-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 22%;
-  }
-
-  .codeEditor_size {
-    width: 78%;
-  }
-}
-
-/* 5xl */
-@media (min-width: 2560px) {
-  .project-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 18%;
-  }
-
-  .codeEditor_size {
-    width: 82%;
-  }
-}
-
-/* 6xl */
-@media (min-width: 3440px) {
-  .project-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 15%;
-  }
-
-  .codeEditor_size {
-    width: 85%;
   }
 }

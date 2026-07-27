@@ -3,8 +3,6 @@ import PageLoader from "../components/PageLoader";
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/LandingPage/Header";
 import Hero from "../components/LandingPage/Hero";
-import Features from "../components/LandingPage/Features";
-import HowItWorks from "../components/LandingPage/HowItWorks";
 import Testimonials from "../components/LandingPage/Testimonials";
 import CTA from "../components/LandingPage/CTA";
 import Footer from "../components/LandingPage/footer/Footer";
@@ -18,38 +16,30 @@ const Landingpage = () => {
 
   useEffect(() => {
     if (loading) {
-      // First visit only → mark session as visited
       sessionStorage.setItem("isVisited", "true");
-
-      const timer = setTimeout(() => setLoading(false), 1500);
+      const timer = setTimeout(() => setLoading(false), 1200);
       return () => clearTimeout(timer);
     }
   }, [loading]);
 
   return (
-    <main
-      className={`${
-        loading ? "h-[100dvh]" : "min-h-screen"
-      } bg-gray-950 text-white overflow-x-hidden relative select-none`}
-    >
+    <div className="min-h-screen bg-[#080b11] text-white relative select-none">
       {loading && (
-        <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-[#080b11] flex items-center justify-center z-[9999]">
           <PageLoader />
         </div>
       )}
 
-      {/* Background blobs */}
+      {/* Background ambient flares */}
       <BackgroundBlobs />
 
-      {/* Components */}
+      {/* Main Home Overview Components */}
       <Header />
       <Hero />
-      <Features />
-      <HowItWorks />
       <Testimonials />
       <CTA />
       <Footer />
-    </main>
+    </div>
   );
 };
 

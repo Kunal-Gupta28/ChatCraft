@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const backdropVariants = {
@@ -47,4 +48,4 @@ const BaseModal = ({
   );
 };
 
-export default BaseModal;
+export default memo(BaseModal);

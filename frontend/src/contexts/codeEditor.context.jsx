@@ -1,23 +1,38 @@
-import { createContext, useContext, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  selectFileTree,
+  setFileTree as setFileTreeAction,
+} from "../store/slices/editorSlice";
+import { useCallback } from "react";
 
-const CodeEditorContext = createContext();
+let globalWebContainer = null;
 
-export const CodeEditorProvider = ({ children }) => {
-  const [fileTree, setFileTree] = useState(null);
-  const [webContainer, setWebContainer] = useState(null);
-
-  return (
-    <CodeEditorContext.Provider
-      value={{
-        fileTree,
-        setFileTree,
-        webContainer,
-        setWebContainer,
-      }}
-    >
-      {children}
-    </CodeEditorContext.Provider>
-  );
+export const getWebContainerInstance = () => globalWebContainer;
+export const setWebContainerInstance = (instance) => {
+  globalWebContainer = instance;
 };
 
-export const useCodeEditor = () => useContext(CodeEditorContext);
+export const CodeEditorProvider = ({ children }) => children;
+
+export const useCodeEditor = () => {
+  const fileTree = useSelector(selectFileTree);
+  const dispatch = useDispatch();
+
+  const setFileTree = useCallback(
+    (tree) => {
+      dispatch(setFileTreeAction(tree));
+    },
+    [dispatch]
+  );
+
+  const setWebContainer = useCallback((container) => {
+    setWebContainerInstance(container);
+  }, []);
+
+  return {
+    fileTree,
+    setFileTree,
+    webContainer: globalWebContainer,
+    setWebContainer,
+  };
+};

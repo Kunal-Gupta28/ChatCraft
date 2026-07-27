@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import BaseModal from "../BaseModal";
 import Button from "../Button";
 import Input from "../Input";
@@ -58,4 +58,4 @@ const DeleteConfirmation = ({ open, onClose, onConfirm, projectName }) => {
   );
 };
 
-export default DeleteConfirmation;
+export default memo(DeleteConfirmation);

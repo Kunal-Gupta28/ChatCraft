@@ -1,13 +1,13 @@
-// Button.jsx
+import { memo, forwardRef } from "react";
 
-const Button = ({
+const Button = forwardRef(({
   children,
   onClick,
   disabled,
   variant = "primary",
   className = "",
   type = "button",
-}) => {
+}, ref) => {
   const base =
     "px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center cursor-pointer";
 
@@ -36,6 +36,7 @@ const Button = ({
 
   return (
     <button
+      ref={ref}
       type={type}
       onClick={onClick}
       disabled={disabled}
@@ -49,6 +50,8 @@ const Button = ({
       {children}
     </button>
   );
-};
+});
 
-export default Button;
+Button.displayName = "Button";
+
+export default memo(Button);

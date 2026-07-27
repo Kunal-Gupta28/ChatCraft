@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../../config/axios";
 import { useUser } from "../../contexts/user.context";
 
@@ -20,8 +21,8 @@ const avatarOptions = [
 ];
 
 const AvatarPicker = ({ open, onClose }) => {
-  // context api
-  const { setUser } = useUser();
+  const queryClient = useQueryClient();
+  const { user, setUser } = useUser();
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,10 +46,17 @@ const AvatarPicker = ({ open, onClose }) => {
       });
 
       if (res.status === 200) {
-        setUser((prev) => ({
-          ...prev,
-          profilePic: res.data.user.profilePic,
-        }));
+        const updatedUser = {
+          ...(user || {}),
+          ...(res.data?.user || {}),
+          profilePic: res.data?.user?.profilePic || selected,
+        };
+
+        // Update React Query cache so Home.jsx useEffect doesn't overwrite with old cached data
+        queryClient.setQueryData(["user"], updatedUser);
+
+        // Update Redux state
+        setUser(updatedUser);
 
         setSelected(null);
         onClose();
@@ -58,7 +66,8 @@ const AvatarPicker = ({ open, onClose }) => {
     } finally {
       setLoading(false);
     }
-  }, [selected, setUser, onClose, loading]);
+  }, [selected, user, setUser, queryClient, onClose, loading]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -66,7 +75,7 @@ const AvatarPicker = ({ open, onClose }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 select-none"
           aria-modal="true"
           role="dialog"
         >
@@ -75,45 +84,48 @@ const AvatarPicker = ({ open, onClose }) => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.85, opacity: 0 }}
             transition={{ type: "spring", duration: 0.4 }}
-            className="bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-lg border border-gray-700 relative"
+            className="bg-slate-900/90 border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-lg relative backdrop-blur-2xl"
           >
             {/* Close Button */}
             <button
               aria-label="Close"
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition cursor-pointer"
               onClick={handleClose}
             >
-              <X size={24} />
+              <X size={22} />
             </button>
 
-            {/* heading  */}
-            <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center text-white">
+            {/* Heading */}
+            <h2 className="text-xl sm:text-2xl font-extrabold mb-6 text-center text-white tracking-tight">
               Choose Your Profile Picture
             </h2>
 
             {/* Avatar Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3.5 mb-6">
               {avatarOptions?.map((avatar) => (
                 <motion.div
                   key={avatar}
-                  whileHover={{ scale: 1.07 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleSelect(avatar)}
-                  className="relative cursor-pointer rounded-xl overflow-hidden border border-gray-700 hover:border-blue-400 transition"
+                  className={`relative cursor-pointer rounded-2xl overflow-hidden border transition-all ${
+                    selected === avatar
+                      ? "border-blue-500 ring-2 ring-blue-500/30 shadow-lg"
+                      : "border-slate-800 hover:border-slate-600"
+                  }`}
                 >
-                  {/* Avatar Image */}
                   <img
                     src={avatar}
-                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl object-cover"
+                    alt="avatar option"
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover"
                   />
 
-                  {/* Checkmark at Top Right */}
                   {selected === avatar && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.6 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0 }}
-                      className="absolute top-1 right-1 bg-blue-600 rounded-full p-1 shadow-md"
+                      className="absolute top-1.5 right-1.5 bg-blue-600 rounded-full p-1 shadow-md"
                     >
                       <Check size={14} className="text-white" />
                     </motion.div>
@@ -126,15 +138,13 @@ const AvatarPicker = ({ open, onClose }) => {
             <button
               disabled={!selected || loading}
               onClick={handleSave}
-              className={`w-full py-3 rounded-xl font-semibold transition
-                ${
-                  selected && !loading
-                    ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
-                    : "bg-gray-700 text-gray-400 cursor-not-allowed"
-                }
-              `}
+              className={`w-full py-3 rounded-xl font-semibold transition cursor-pointer text-sm shadow-lg ${
+                selected && !loading
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 active:scale-[0.99]"
+                  : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-60"
+              }`}
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? "Saving..." : "Save Avatar"}
             </button>
           </motion.div>
         </motion.div>

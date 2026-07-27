@@ -8,6 +8,8 @@ import { useUser } from "../contexts/user.context";
 import BackgroundBlobs from "../components/BackgroundBlobs";
 import Header from "../components/HomePage/Header";
 import SearchBar from "../components/SearchBar";
+import SortDropdown from "../components/HomePage/SortDropdown";
+import StatsSidebar from "../components/HomePage/StatsSidebar";
 import ProjectList from "../components/HomePage/ProjectList";
 import CreatePopup from "../components/HomePage/CreatePopup";
 import SuccessToast from "../components/SuccessToast";
@@ -26,6 +28,7 @@ const Home = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [projectName, setProjectName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("date-newest");
   const [createPopup, setCreatePopup] = useState(false);
   const [avatarPopup, setAvatarPopup] = useState(false);
   const [deletePopup, setDeletePopup] = useState({
@@ -116,7 +119,7 @@ const Home = () => {
     },
   });
 
-  // delete protect
+  // delete project
   const handleDeleteProject = (projectId) => {
     deleteProjectMutation.mutate(projectId);
   };
@@ -135,41 +138,83 @@ const Home = () => {
     },
   });
 
-  // filter project by input
+  // filter and sort projects
   const filteredProjects = useMemo(() => {
     const term = searchTerm.toLowerCase();
 
-    return projects
+    let list = projects
       .filter((p) => p?.projectName)
       .filter((p) => p.projectName.toLowerCase().includes(term));
-  }, [projects, searchTerm]);
+
+    return list.sort((a, b) => {
+      if (sortBy === "name-asc") {
+        return a.projectName.localeCompare(b.projectName);
+      }
+      if (sortBy === "name-desc") {
+        return b.projectName.localeCompare(a.projectName);
+      }
+      if (sortBy === "date-newest") {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+      if (sortBy === "date-oldest") {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      if (sortBy === "members-desc") {
+        const countA = a.memberCount ?? a.users?.length ?? 0;
+        const countB = b.memberCount ?? b.users?.length ?? 0;
+        return countB - countA;
+      }
+      if (sortBy === "members-asc") {
+        const countA = a.memberCount ?? a.users?.length ?? 0;
+        const countB = b.memberCount ?? b.users?.length ?? 0;
+        return countA - countB;
+      }
+      return 0;
+    });
+  }, [projects, searchTerm, sortBy]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="h-[100dvh] lg:min-h-[100dvh] bg-gray-950 text-white px-2 lg:px-6 py-5 lg:py-10 relative overflow-hidden select-none"
+      className="h-[100dvh] bg-gray-950 text-white px-3 sm:px-6 py-4 sm:py-6 relative overflow-hidden select-none flex flex-col"
     >
       {/* background Blobs */}
       <BackgroundBlobs />
 
-      {/* header */}
-      <Header setCreatePopup={setCreatePopup} setAvatarPopup={setAvatarPopup} />
+      <div className="w-full max-w-[92vw] 2xl:max-w-[88vw] mx-auto flex flex-col h-full relative z-10">
+        {/* header */}
+        <Header setCreatePopup={setCreatePopup} setAvatarPopup={setAvatarPopup} />
 
-      {/* SearchBar */}
-      <SearchBar
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="Search projects by name..."
-      />
+        {/* 2-Column Content Layout */}
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 relative z-20">
+          {/* Left Sidebar: Workspace Statistics */}
+          <StatsSidebar projects={projects} />
 
-      {/* ProjectList */}
-      <ProjectList
-        filteredProjects={filteredProjects}
-        openDeletePopup={setDeletePopup}
-        openRenamePopup={setRenamePopup}
-      />
+          {/* Right Panel: Search, Sort & Project List */}
+          <main className="flex-1 flex flex-col min-w-0 h-full relative">
+            {/* SearchBar & Sort Controls */}
+            <div className="flex items-center gap-3 mb-4 relative z-30 shrink-0">
+              <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Search projects by name..."
+              />
+              <SortDropdown sortBy={sortBy} onSortChange={setSortBy} />
+            </div>
+
+            {/* ProjectList */}
+            <div className="flex-1 min-h-0 relative">
+              <ProjectList
+                filteredProjects={filteredProjects}
+                openDeletePopup={setDeletePopup}
+                openRenamePopup={setRenamePopup}
+              />
+            </div>
+          </main>
+        </div>
+      </div>
 
       {/* Create Project */}
       <CreatePopup
@@ -229,4 +274,3 @@ const Home = () => {
 };
 
 export default Home;
-// 245

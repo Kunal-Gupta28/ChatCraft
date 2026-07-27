@@ -1,39 +1,48 @@
+import { memo, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 
-const MarkdownWithCode = ({ code, onChange, fileName }) => {
+const MONACO_OPTIONS = {
+  minimap: { enabled: false },
+  fontSize: 14,
+  wordWrap: "on",
+  automaticLayout: true,
+};
 
-  // get file with its extention by using filetree
-  const getLanguage = () => {
-    const ext = fileName.split(".").pop().toLowerCase();
-    return (
-      {
-        js: "javascript",
-        jsx: "javascript",
-        ts: "typescript",
-        tsx: "typescript",
-        html: "html",
-        css: "css",
-        json: "json",
-        md: "markdown",
-      }[ext] || "plaintext"
-    );
-  };
+const getLanguage = (fileName) => {
+  if (!fileName) return "plaintext";
+  const ext = fileName.split(".").pop().toLowerCase();
+  return (
+    {
+      js: "javascript",
+      jsx: "javascript",
+      ts: "typescript",
+      tsx: "typescript",
+      html: "html",
+      css: "css",
+      json: "json",
+      md: "markdown",
+    }[ext] || "plaintext"
+  );
+};
+
+const MarkdownWithCode = ({ code, onChange, fileName }) => {
+  const handleChange = useCallback(
+    (val) => {
+      onChange(val || "");
+    },
+    [onChange]
+  );
 
   return (
     <Editor
       height="100%"
       value={code}
-      onChange={(val) => onChange(val || "")}
+      onChange={handleChange}
       theme="vs-dark"
-      language={getLanguage()}
-      options={{
-        minimap: { enabled: false },
-        fontSize: 14,
-        wordWrap: "on",
-        automaticLayout: true,
-      }}
+      language={getLanguage(fileName)}
+      options={MONACO_OPTIONS}
     />
   );
 };
 
-export default MarkdownWithCode;
+export default memo(MarkdownWithCode);

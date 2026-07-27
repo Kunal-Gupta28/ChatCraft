@@ -1,17 +1,30 @@
-import { createContext, useContext, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  selectProject,
+  setProject as setProjectAction,
+  updateProjectDetails as updateProjectDetailsAction,
+} from "../store/slices/projectSlice";
+import { useCallback } from "react";
 
-const ProjectContext = createContext();
+export const ProjectProvider = ({ children }) => children;
 
-export const ProjectProvider = ({ children }) => {
-  // project state
-  const [project, setProject] = useState(null);
+export const useProject = () => {
+  const project = useSelector(selectProject);
+  const dispatch = useDispatch();
 
-  return (
-    <ProjectContext.Provider value={{ project, setProject }}>
-      {children}
-    </ProjectContext.Provider>
+  const setProject = useCallback(
+    (projectData) => {
+      dispatch(setProjectAction(projectData));
+    },
+    [dispatch]
   );
-};
 
-// use project context
-export const useProject = () => useContext(ProjectContext);
+  const updateProjectDetails = useCallback(
+    (details) => {
+      dispatch(updateProjectDetailsAction(details));
+    },
+    [dispatch]
+  );
+
+  return { project, setProject, updateProjectDetails };
+};

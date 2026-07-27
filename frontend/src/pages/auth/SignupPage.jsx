@@ -35,45 +35,42 @@ const SignupPage = () => {
       name: "username",
       label: "Username",
       type: "text",
-      placeholder: "Enter username",
+      placeholder: "johndoe",
     },
     {
       name: "email",
-      label: "Email",
+      label: "Email Address",
       type: "email",
-      placeholder: "Enter your email",
+      placeholder: "name@example.com",
     },
     {
       name: "password",
       label: "Password",
       type: "password",
-      placeholder: "Enter your password",
+      placeholder: "••••••••",
     },
   ];
 
   return (
-    <AuthLayout title="Signup">
+    <AuthLayout title="Create Account" subtitle="Join ChatCraft to craft & collaborate with AI in real time">
       <AuthForm
         fields={fields}
         form={form}
         onChange={handleChange}
         onSubmit={handleSubmit}
         loading={mutation.isPending}
-        buttonText="Signup"
-        error={
-          mutation.error?.response?.data?.error
-        }
+        buttonText="Create Account"
+        error={mutation.error?.response?.data?.error}
       />
 
-      {/* nagivate to signup page */}
-      <div className="mt-6 text-center text-gray-300">
-        Already have an account?
-
+      {/* Navigate to Login Page */}
+      <div className="mt-6 text-center text-xs text-slate-400">
+        <span>Already have an account?</span>
         <Link
           to="/auth/login"
-          className="text-blue-400 ml-2"
+          className="text-blue-400 font-semibold ml-1.5 hover:underline"
         >
-          Login
+          Sign in
         </Link>
       </div>
     </AuthLayout>

@@ -1,6 +1,7 @@
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
-import { UserProvider } from "../../contexts/user.context";
+import { Provider } from "react-redux";
+import { store } from "../../store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,11 +16,11 @@ const queryClient = new QueryClient({
 
 const AppProviders = ({ children }) => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
         <BrowserRouter>{children}</BrowserRouter>
-      </UserProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </Provider>
   );
 };
 

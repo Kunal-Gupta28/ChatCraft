@@ -1,28 +1,38 @@
-import { createContext, useContext, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  selectMessages,
+  setMessages as setMessagesAction,
+  addMessage as addMessageAction,
+} from "../store/slices/chatSlice";
+import { useCallback } from "react";
 
-const MessagesContext = createContext();
+export const MessagesProvider = ({ children }) => children;
 
-// Provider
-export const MessagesProvider = ({ children }) => {
-  const [messages, setMessages] = useState([]);
-
-  return (
-    <MessagesContext.Provider
-      value={{
-        messages,
-        setMessages,
-      }}
-    >
-      {children}
-    </MessagesContext.Provider>
-  );
-};
-
-// custom hook
 export const useMessages = () => {
-  const context = useContext(MessagesContext);
-  if (!context) {
-    throw new Error("useMessages must be used inside MessagesProvider");
-  }
-  return context;
+  const messages = useSelector(selectMessages);
+  const dispatch = useDispatch();
+
+  const setMessages = useCallback(
+    (val) => {
+      if (typeof val === "function") {
+        dispatch((_, getState) => {
+          const current = getState().chat.messages;
+          const next = val(current);
+          dispatch(setMessagesAction(next));
+        });
+      } else {
+        dispatch(setMessagesAction(val));
+      }
+    },
+    [dispatch]
+  );
+
+  const addMessage = useCallback(
+    (msg) => {
+      dispatch(addMessageAction(msg));
+    },
+    [dispatch]
+  );
+
+  return { messages, setMessages, addMessage };
 };

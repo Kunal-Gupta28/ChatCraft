@@ -1,4 +1,5 @@
-  import BaseModal from "../BaseModal";
+import { memo, useCallback } from "react";
+import BaseModal from "../BaseModal";
 import Button from "../Button";
 import Input from "../Input";
 import { Loader2 } from "lucide-react";
@@ -11,17 +12,17 @@ const CreatePopup = ({
   handleCreateProject,
   createMutation
 }) => {
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setCreatePopup(false);
     setProjectName("");
-    createMutation.reset()
-  };
+    createMutation.reset();
+  }, [setCreatePopup, setProjectName, createMutation]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === "Enter" && projectName.trim() && !createMutation.isPending) {
       handleCreateProject();
     }
-  };
+  }, [projectName, createMutation.isPending, handleCreateProject]);
 
   return (
     <BaseModal open={createPopup} onClose={handleClose}>
@@ -64,4 +65,4 @@ const CreatePopup = ({
   );
 };
 
-export default CreatePopup;
+export default memo(CreatePopup);

@@ -1,24 +1,24 @@
-import { createContext, useContext, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { selectUser, setUser as setUserAction } from "../store/slices/userSlice";
+import { useCallback } from "react";
 
-const UserContext = createContext();
+export const UserProvider = ({ children }) => children;
 
-export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem("user");
+export const useUser = () => {
+  const user = useSelector(selectUser);
+  const dispatch = useDispatch();
 
-    return storedUser
-      ? JSON.parse(storedUser)
-      : null;
-  });
-
-  return (
-    <UserContext.Provider
-      value={{ user, setUser }}
-    >
-      {children}
-    </UserContext.Provider>
+  const setUser = useCallback(
+    (userData) => {
+      if (typeof userData === "function") {
+        const nextUser = userData(user);
+        dispatch(setUserAction(nextUser));
+      } else {
+        dispatch(setUserAction(userData));
+      }
+    },
+    [dispatch, user]
   );
-};
 
-export const useUser = () =>
-  useContext(UserContext);
+  return { user, setUser };
+};

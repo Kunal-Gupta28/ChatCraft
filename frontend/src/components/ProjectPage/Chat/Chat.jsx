@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback } from "react";
-import { Users, MessageCircle, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProject } from "../../../contexts/project.context";
 import { useMessages } from "../../../contexts/Messages.context";
@@ -12,7 +11,7 @@ import Header from "./Header";
 // lazy load
 const Collaborators = lazy(() => import("./collaborator/Collaborators"));
 
-const Chat = () => {
+const Chat = ({ toggleChat, isChatVisible }) => {
   const [showUsers, setShowUsers] = useState(false);
 
   const { handleSend } = useChat();
@@ -22,6 +21,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const { project } = useProject();
   const { messages } = useMessages();
+
   // auto scroll
   useEffect(() => {
     if (messages.length > prevLengthRef.current) {
@@ -41,12 +41,14 @@ const Chat = () => {
     [handleSend]
   );
 
+  const memberCount = (project?.users?.length || 0) + 1; // Project owner/users + self
+
   return (
-    <div className="w-full h-full flex flex-col bg-transparent backdrop-blur-md">
+    <div className="w-full h-full flex flex-col bg-[#080b11]/90 backdrop-blur-2xl border-r border-slate-800/80">
       {showUsers ? (
         <Suspense
           fallback={
-            <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="flex items-center justify-center h-full text-slate-400 text-xs font-mono">
               Loading collaborators...
             </div>
           }
@@ -56,22 +58,11 @@ const Chat = () => {
       ) : (
         <>
           <Header
-            leftIcon={<ArrowLeft size={20} />}
-            onLeftClick={() => navigate("/home")}
-            centerContent={
-              <div className="flex items-center gap-2">
-                <MessageCircle className="text-blue-400" size={20} />
-                <span className="truncate max-w-[180px]">
-                  {project?.projectName || "Untitled"}
-                </span>
-              </div>
-            }
-            rightActions={[
-              {
-                icon: <Users size={20} />,
-                onClick: () => setShowUsers(true),
-              },
-            ]}
+            projectName={project?.projectName || "Workspace Chat"}
+            memberCount={project?.users?.length || 1}
+            onBack={() => navigate("/dashboard")}
+            onToggleChat={toggleChat}
+            onShowUsers={() => setShowUsers(true)}
           />
           <ChatMessages chatEndRef={chatEndRef} />
           <ChatInput handleKeyPress={handleKeyPress} />

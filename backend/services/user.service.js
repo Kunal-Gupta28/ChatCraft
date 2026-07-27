@@ -77,7 +77,7 @@ module.exports.setAvatar = async ({ avatar, userId }) => {
 
     const updatedUser = await userModel
       .findByIdAndUpdate(userId, { profilePic: avatar }, { new: true })
-      .select("profilePic");
+      .select("-password");
     return updatedUser;
   } catch (error) {
     throw error;

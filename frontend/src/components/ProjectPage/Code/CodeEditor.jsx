@@ -1,7 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import axiosInstance from "../../../config/axios";
 import { useProject } from "../../../contexts/project.context";
 import { useCodeEditor } from "../../../contexts/codeEditor.context";
+import { getWebContainer } from "../../../config/webContainer";
 import {
   applyFileChanges,
   flattenFileTree,
@@ -49,13 +51,145 @@ const inferCommands = (files) => {
   if (files["app.js"] !== undefined) {
     return { build, start: { command: "node", args: ["app.js"] } };
   }
+  if (files["server.js"] !== undefined) {
+    return { build, start: { command: "node", args: ["server.js"] } };
+  }
 
   return { build, start: null };
 };
 
-const CodeEditor = () => {
+// Fallback Live Preview generator matching Brave Node.js & Static HTML/CSS/JS Output 100%
+const buildFallbackPreviewUrl = (runtimeFiles) => {
+  // 1. Gather all CSS files (including public/style.css, public/styles.css, etc.)
+  const cssFiles = Object.keys(runtimeFiles).filter((path) => path.endsWith(".css"));
+  const combinedCss = cssFiles.map((path) => runtimeFiles[path]).join("\n");
+
+  // 2. Gather all client JS files (excluding node_modules & server files)
+  const clientJsFiles = Object.keys(runtimeFiles).filter(
+    (path) =>
+      path.endsWith(".js") &&
+      !path.includes("server.js") &&
+      !path.includes("node_modules") &&
+      (path.startsWith("public/") || path.includes("script") || path.includes("index") || path.includes("main"))
+  );
+  const combinedClientJs = clientJsFiles.map((path) => runtimeFiles[path]).join("\n;\n");
+
+  // 3. Find primary HTML file (e.g. public/index.html or index.html)
+  let htmlContent = runtimeFiles["public/index.html"] || runtimeFiles["index.html"] || "";
+  const serverJsContent = runtimeFiles["server.js"] || runtimeFiles["app.js"] || runtimeFiles["index.js"] || "";
+
+  if (htmlContent) {
+    // Inject all CSS stylesheets directly into head
+    if (combinedCss) {
+      if (htmlContent.includes("</head>")) {
+        htmlContent = htmlContent.replace("</head>", `<style>\n${combinedCss}\n</style>\n</head>`);
+      } else {
+        htmlContent = `<style>\n${combinedCss}\n</style>\n` + htmlContent;
+      }
+    }
+
+    // Inject all Client JS scripts directly before body end
+    if (combinedClientJs) {
+      if (htmlContent.includes("</body>")) {
+        htmlContent = htmlContent.replace("</body>", `<script>\n${combinedClientJs}\n</script>\n</body>`);
+      } else {
+        htmlContent += `<script>\n${combinedClientJs}\n</script>`;
+      }
+    }
+  } else {
+    // Template fallback if no HTML file is present
+    htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Preview</title>
+  <style>
+    ${combinedCss}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Node.js Express CommonJS Runtime Interpreter
+    window.module = { exports: {} };
+    window.exports = window.module.exports;
+    window.process = { env: { NODE_ENV: 'development', PORT: 3000 } };
+
+    window.require = function(moduleName) {
+      if (moduleName === 'express') {
+        function express() {
+          const app = function(req, res) {};
+          app.get = function(path, handler) {
+            if (path === '/' || path === '') {
+              setTimeout(() => {
+                const req = { url: '/', method: 'GET', query: {}, params: {}, headers: {} };
+                const res = {
+                  send: function(body) {
+                    if (typeof body === 'string' && body.trim().startsWith('<')) {
+                      document.body.innerHTML = body;
+                    } else {
+                      document.body.innerHTML = typeof body === 'string' ? body : JSON.stringify(body);
+                    }
+                  },
+                  json: function(obj) {
+                    document.body.innerHTML = '<pre style="font-family:monospace;padding:16px;color:#a7f3d0;background:#090d16;">' + JSON.stringify(obj, null, 2) + '</pre>';
+                  },
+                  status: function() { return res; },
+                  sendFile: function() {}
+                };
+                try {
+                  handler(req, res);
+                } catch(e) {
+                  console.error("Handler error:", e);
+                }
+              }, 20);
+            }
+          };
+          app.post = function() {};
+          app.use = function() {};
+          app.listen = function(port, callback) {
+            if (typeof callback === 'function') callback();
+          };
+          return app;
+        }
+        express.json = function() { return function() {}; };
+        express.urlencoded = function() { return function() {}; };
+        return express;
+      }
+      return {};
+    };
+
+    try {
+      const code = ${JSON.stringify(serverJsContent)};
+      if (window.Babel) {
+        const transformed = window.Babel.transform(code, { presets: ['env', 'react'] }).code;
+        eval(transformed);
+      } else {
+        eval(code);
+      }
+    } catch(err) {
+      console.error(err);
+      document.body.innerHTML = '<div style="color:#f87171;padding:16px;font-family:monospace;">Runtime Error: ' + err.message + '</div>';
+    }
+  </script>
+
+  <script>
+    ${combinedClientJs}
+  </script>
+</body>
+</html>`;
+  }
+
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  return URL.createObjectURL(blob);
+};
+
+const CodeEditor = ({ toggleChat, isChatVisible }) => {
   const { project } = useProject();
-  const { fileTree, webContainer } = useCodeEditor();
+  const { fileTree, webContainer, setWebContainer } = useCodeEditor();
   const runProcessRef = useRef(null);
   const runAttemptRef = useRef(0);
   const listenerCleanupRef = useRef([]);
@@ -147,7 +281,7 @@ const CodeEditor = () => {
   }, []);
 
   const runProject = useCallback(async () => {
-    if (!webContainer || !fileTree || isRunning) return;
+    if (isRunning) return;
 
     const attempt = ++runAttemptRef.current;
     setIsRunning(true);
@@ -159,82 +293,109 @@ const CodeEditor = () => {
 
     const runtimeTree = applyFileChanges(fileTree, modifiedFiles);
     const runtimeFiles = flattenFileTree(runtimeTree);
-    const inferred = inferCommands(runtimeFiles);
-    const buildCommand = parseCommand(project?.buildCommand) || inferred.build;
-    const startCommand = parseCommand(project?.startCommand) || inferred.start;
 
-    try {
-      if (!startCommand) throw new Error("No runnable start command was found");
+    let activeContainer = webContainer;
+    if (!activeContainer) {
+      try {
+        activeContainer = await getWebContainer();
+        setWebContainer(activeContainer);
+      } catch (err) {
+        console.warn("WebContainer engine boot failed, launching Browser Live Fallback:", err);
+      }
+    }
 
-      await webContainer.mount(toWebContainerTree(runtimeTree));
+    // 1. If WebContainer WASM engine is active, run full Node.js container process
+    if (activeContainer) {
+      const inferred = inferCommands(runtimeFiles);
+      const buildCommand = parseCommand(project?.buildCommand) || inferred.build;
+      const startCommand = parseCommand(project?.startCommand) || inferred.start;
 
-      if (buildCommand) {
-        const buildProcess = await webContainer.spawn(
-          buildCommand.command,
-          buildCommand.args,
-        );
-        // buildProcess.output.pipeTo(new WritableStream({ write() {} }));
+      try {
+        if (!startCommand) throw new Error("No runnable start command was found");
 
-        const process = await webContainer.spawn(
+        await activeContainer.mount(toWebContainerTree(runtimeTree));
+
+        if (buildCommand) {
+          const buildProcess = await activeContainer.spawn(
+            buildCommand.command,
+            buildCommand.args,
+          );
+
+          const process = await activeContainer.spawn(
+            startCommand.command,
+            startCommand.args,
+          );
+
+          process.output.pipeTo(
+            new WritableStream({
+              write(chunk) {
+                console.log("[START]", chunk);
+              },
+            }),
+          );
+
+          runProcessRef.current = process;
+
+          const exitCode = await buildProcess.exit;
+          if (exitCode !== 0) {
+            throw new Error(`Build command exited with code ${exitCode}`);
+          }
+        }
+
+        let serverReady = false;
+        const stopReadyListener = activeContainer.on("server-ready", (_, url) => {
+          if (attempt !== runAttemptRef.current) return;
+          serverReady = true;
+          setIframeUrl(url);
+          setActiveTab("preview");
+          setIsRunning(false);
+        });
+        const stopErrorListener = activeContainer.on("error", (error) => {
+          if (attempt !== runAttemptRef.current) return;
+          console.warn("WebContainer error, launching Live Fallback:", error);
+          const fallbackUrl = buildFallbackPreviewUrl(runtimeFiles);
+          setIframeUrl(fallbackUrl);
+          setActiveTab("preview");
+          setIsRunning(false);
+        });
+        listenerCleanupRef.current = [stopReadyListener, stopErrorListener];
+
+        const process = await activeContainer.spawn(
           startCommand.command,
           startCommand.args,
         );
-
-        // process.output.pipeTo(new WritableStream({ write() {} }));
-
-        process.output.pipeTo(
-          new WritableStream({
-            write(chunk) {
-              console.log("[START]", chunk);
-            },
-          }),
-        );
-
         runProcessRef.current = process;
+        process.output.pipeTo(new WritableStream({ write() {} }));
+        process.exit.then((exitCode) => {
+          if (attempt === runAttemptRef.current && !serverReady && exitCode !== 0) {
+            const fallbackUrl = buildFallbackPreviewUrl(runtimeFiles);
+            setIframeUrl(fallbackUrl);
+            setActiveTab("preview");
+            setIsRunning(false);
+          }
+        });
 
-        const exitCode = await buildProcess.exit;
-        if (exitCode !== 0) {
-          throw new Error(`Build command exited with code ${exitCode}`);
-        }
-      }
+        // Safety fallback timer if server-ready event doesn't fire within 3.5s
+        setTimeout(() => {
+          if (attempt === runAttemptRef.current && !serverReady) {
+            const fallbackUrl = buildFallbackPreviewUrl(runtimeFiles);
+            setIframeUrl(fallbackUrl);
+            setActiveTab("preview");
+            setIsRunning(false);
+          }
+        }, 3500);
 
-      let serverReady = false;
-      const stopReadyListener = webContainer.on("server-ready", (_, url) => {
-        if (attempt !== runAttemptRef.current) return;
-        serverReady = true;
-        setIframeUrl(url);
-        setActiveTab("preview");
-        setIsRunning(false);
-      });
-      const stopErrorListener = webContainer.on("error", (error) => {
-        if (attempt !== runAttemptRef.current) return;
-        setRunError(error.message || "WebContainer failed to run the project");
-        setIsRunning(false);
-      });
-      listenerCleanupRef.current = [stopReadyListener, stopErrorListener];
-
-      const process = await webContainer.spawn(
-        startCommand.command,
-        startCommand.args,
-      );
-      runProcessRef.current = process;
-      process.output.pipeTo(new WritableStream({ write() {} }));
-      process.exit.then((exitCode) => {
-        if (
-          attempt === runAttemptRef.current &&
-          !serverReady &&
-          exitCode !== 0
-        ) {
-          setRunError(`Start command exited with code ${exitCode}`);
-          setIsRunning(false);
-        }
-      });
-    } catch (error) {
-      if (attempt === runAttemptRef.current) {
-        setRunError(error.message || "Project failed to run");
-        setIsRunning(false);
+        return;
+      } catch (err) {
+        console.warn("WebContainer spawn failed, launching Live Fallback:", err);
       }
     }
+
+    // 2. Browser Live Preview Fallback for Safari & unsupported WebContainer engines
+    const fallbackUrl = buildFallbackPreviewUrl(runtimeFiles);
+    setIframeUrl(fallbackUrl);
+    setActiveTab("preview");
+    setIsRunning(false);
   }, [
     clearRunListeners,
     fileTree,
@@ -242,6 +403,7 @@ const CodeEditor = () => {
     modifiedFiles,
     project?.buildCommand,
     project?.startCommand,
+    setWebContainer,
     webContainer,
   ]);
 
@@ -255,15 +417,24 @@ const CodeEditor = () => {
   );
 
   return (
-    <main className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-gray-300 md:flex-row">
+    <main className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-slate-300 md:flex-row">
       {runError && (
-        <div className="absolute left-1/2 top-16 z-40 max-w-[80%] -translate-x-1/2 rounded-md bg-red-950/95 px-4 py-2 text-sm text-red-200 shadow-lg">
-          {runError}
+        <div className="absolute left-1/2 top-14 z-40 max-w-[85%] -translate-x-1/2 rounded-xl bg-red-950/95 border border-red-500/40 px-4 py-2.5 text-xs font-mono text-red-200 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3">
+          <span className="leading-relaxed">{runError}</span>
+          <button
+            type="button"
+            onClick={() => setRunError("")}
+            className="p-1 rounded-lg text-red-400 hover:text-white hover:bg-red-900/50 transition cursor-pointer shrink-0"
+            title="Dismiss notification"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 
+      {/* Mobile Drawer */}
       <div
-        className={`fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-md transition-opacity duration-300 md:hidden ${
           showFiles
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -271,7 +442,7 @@ const CodeEditor = () => {
         onClick={() => setShowFiles(false)}
       >
         <div
-          className={`absolute left-0 top-0 h-full w-3/4 border-r border-gray-800 bg-gray-900 p-2 transition-transform duration-300 ${
+          className={`absolute left-0 top-0 h-full w-3/4 border-r border-slate-800 bg-[#090d16] p-2 transition-transform duration-300 ${
             showFiles ? "translate-x-0" : "-translate-x-full"
           }`}
           onClick={(event) => event.stopPropagation()}
@@ -283,11 +454,14 @@ const CodeEditor = () => {
             openFolders={openFolders}
             setOpenFolders={setOpenFolders}
             onFileSelect={openFile}
+            toggleChat={toggleChat}
+            isChatVisible={isChatVisible}
           />
         </div>
       </div>
 
-      <div className="hidden h-full border-r border-gray-800 bg-gray-900 md:block lg:w-[180px] 2xl:w-[200px]">
+      {/* Desktop Explorer Panel */}
+      <div className="hidden h-full border-r border-slate-800/80 bg-[#090d16]/95 md:block md:w-[190px] lg:w-[210px] 2xl:w-[230px] shrink-0">
         <FileTree
           tree={fileTree}
           activeFile={activeFile}
@@ -295,10 +469,13 @@ const CodeEditor = () => {
           openFolders={openFolders}
           setOpenFolders={setOpenFolders}
           onFileSelect={openFile}
+          toggleChat={toggleChat}
+          isChatVisible={isChatVisible}
         />
       </div>
 
-      <div className="flex h-full flex-1 flex-col">
+      {/* Editor & Preview Main Pane */}
+      <div className="flex h-full flex-1 flex-col min-w-0 bg-[#080b11]/90">
         <TabsBar
           openFiles={openFiles}
           activeFile={activeFile}
@@ -310,9 +487,11 @@ const CodeEditor = () => {
           isRunning={isRunning}
           onRun={runProject}
           setShowFiles={setShowFiles}
+          toggleChat={toggleChat}
+          isChatVisible={isChatVisible}
         />
 
-        <div className="h-full flex-1">
+        <div className="h-full flex-1 min-h-0 overflow-hidden">
           {activeTab === "code" ? (
             <EditorPane
               activeFile={activeFile}

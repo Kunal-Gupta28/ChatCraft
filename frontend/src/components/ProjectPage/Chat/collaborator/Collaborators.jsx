@@ -33,7 +33,11 @@ const Collaborators = ({ setShowUsers }) => {
   });
   const [toastMessage, setToastMessage] = useState("");
 
-  const isOwner = project?.owner === currentUser?._id;
+  const ownerId = typeof project?.owner === "object" ? project?.owner?._id : project?.owner;
+  const currentUserId = currentUser?._id;
+  const isOwner = Boolean(
+    ownerId && currentUserId && String(ownerId) === String(currentUserId)
+  );
 
   // reset states
   const resetModalState = useCallback(() => {
@@ -55,13 +59,13 @@ const Collaborators = ({ setShowUsers }) => {
 
   const selectedUsersHandler = useCallback(
     (user) => {
-      const alreadyAdded = project?.users?.some((u) => u._id === user._id);
+      const alreadyAdded = project?.users?.some((u) => String(u._id) === String(user._id));
       if (alreadyAdded) return;
 
       setSelectedUsers((prev) => {
-        const exists = prev.some((u) => u._id === user._id);
+        const exists = prev.some((u) => String(u._id) === String(user._id));
         return exists
-          ? prev.filter((u) => u._id !== user._id)
+          ? prev.filter((u) => String(u._id) !== String(user._id))
           : [...prev, user];
       });
     },
@@ -81,7 +85,7 @@ const Collaborators = ({ setShowUsers }) => {
       if (res.status === 200) {
         setProject((prev) => ({
           ...prev,
-          users: [...prev.users, ...selectedUsers],
+          users: [...(prev.users || []), ...selectedUsers],
         }));
 
         setToastMessage(`${selectedUsers.length} collaborator(s) added`);
@@ -104,7 +108,7 @@ const Collaborators = ({ setShowUsers }) => {
         if (res.status === 200) {
           setProject((prev) => ({
             ...prev,
-            users: prev.users.filter((u) => u._id !== userId),
+            users: (prev.users || []).filter((u) => String(u._id) !== String(userId)),
           }));
           setToastMessage(`"${confirmRemove.username}" removed successfully`);
           setConfirmRemove({ show: false, userId: null, username: "" });
@@ -126,39 +130,10 @@ const Collaborators = ({ setShowUsers }) => {
     [allUsers, searchQuery],
   );
 
-  return (
-    <>
-      <Header
-        title="Collaborators"
-        leftIcon={<ArrowLeft size={20} />}
-        onLeftClick={() => setShowUsers(false)}
-        rightActions={
-          isOwner
-            ? [
-                {
-                  icon: <UserPlus size={18} />,
-                  onClick: fetchAllUsers,
-                  variant: "primary",
-                },
-              ]
-            : []
-        }
-      />
-
-      <SearchBar
-        value={searchTerm}
-        onChange={setSearchTerm}
-        placeholder="Search member..."
-      />
-
-      <CollaboratorsList
-        filteredProjectUsers={filteredProjectUsers}
-        isOwner={isOwner}
-        projectOwnerId={project?.owner}
-        setConfirmRemove={setConfirmRemove}
-      />
-
-      {showModal && (
+  // Render full-height Add Members view when active
+  if (showModal) {
+    return (
+      <div className="w-full h-full flex flex-col bg-[#090d16]/95 backdrop-blur-2xl select-none relative">
         <CollaboratorsAddModal
           filteredAllUsers={filteredAllUsers}
           selectedUsers={selectedUsers}
@@ -170,7 +145,46 @@ const Collaborators = ({ setShowUsers }) => {
           setSearchQuery={setSearchQuery}
           projectUsers={project?.users}
         />
-      )}
+
+        <SuccessToast
+          message={toastMessage}
+          clearToast={() => setToastMessage("")}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col bg-[#090d16]/95 backdrop-blur-2xl select-none relative">
+      <Header
+        title="Project Members"
+        leftIcon={<ArrowLeft size={18} />}
+        onLeftClick={() => setShowUsers(false)}
+        rightActions={[
+          {
+            icon: <UserPlus size={15} />,
+            label: "Add",
+            onClick: fetchAllUsers,
+            variant: "primary",
+            title: "Add New Collaborators",
+          },
+        ]}
+      />
+
+      <div className="p-3 border-b border-slate-800/80 bg-slate-950/40">
+        <SearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search member..."
+        />
+      </div>
+
+      <CollaboratorsList
+        filteredProjectUsers={filteredProjectUsers}
+        isOwner={isOwner}
+        projectOwnerId={ownerId}
+        setConfirmRemove={setConfirmRemove}
+      />
 
       {confirmRemove.show && (
         <CollaboratorsRemoveModal
@@ -184,7 +198,7 @@ const Collaborators = ({ setShowUsers }) => {
         message={toastMessage}
         clearToast={() => setToastMessage("")}
       />
-    </>
+    </div>
   );
 };
 

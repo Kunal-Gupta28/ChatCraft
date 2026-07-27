@@ -1,22 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import BaseModal from "../BaseModal";
 import Button from "../Button";
 import Input from "../Input";
 import { Loader2 } from "lucide-react";
 
 const RenamePopup = ({ renamePopup, onClose, onConfirm, renameMutation }) => {
-  const [value, setValue] = useState(renamePopup.projectName);
+  const [value, setValue] = useState(renamePopup.projectName || "");
   const inputRef = useRef(null);
   const isSameName = value.trim() === renamePopup.projectName;
 
   useEffect(() => {
-    setValue(renamePopup.projectName);
+    setValue(renamePopup.projectName || "");
   }, [renamePopup.projectName]);
+
   useEffect(() => {
-    inputRef.current?.select();
+    if (renamePopup.open) {
+      inputRef.current?.select();
+    }
   }, [renamePopup.open]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (
       e.key === "Enter" &&
       value.trim() &&
@@ -25,13 +28,13 @@ const RenamePopup = ({ renamePopup, onClose, onConfirm, renameMutation }) => {
     ) {
       onConfirm(value.trim());
     }
-  };
+  }, [value, isSameName, renameMutation.isPending, onConfirm]);
 
-  const clickHandler = () => {
+  const clickHandler = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed || isSameName || renameMutation.isPending) return;
     onConfirm(trimmed);
-  };
+  }, [value, isSameName, renameMutation.isPending, onConfirm]);
 
   return (
     <BaseModal open={renamePopup.open} onClose={onClose}>
@@ -73,4 +76,4 @@ const RenamePopup = ({ renamePopup, onClose, onConfirm, renameMutation }) => {
   );
 };
 
-export default RenamePopup;
+export default memo(RenamePopup);

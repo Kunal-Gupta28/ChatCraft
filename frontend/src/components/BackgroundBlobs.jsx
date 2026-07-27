@@ -1,11 +1,15 @@
+import { memo } from "react";
+
 const BackgroundBlobs = () => {
   return (
-    <>
-      {/* Background blobs */}
-      <div className="absolute top-0 left-0 w-[300px] md:w-[500px]  h-[300px] md:h-[500px] bg-gradient-to-r from-blue-700 to-purple-700 rounded-full blur-3xl opacity-30 animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-[300px] md:w-[400px] h-[300px] bg-gradient-to-bl from-green-500 to-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" />
-    </>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {/* Top Left Indigo Ambient Flare */}
+      <div className="absolute -top-32 -left-32 w-[600px] h-[600px] bg-gradient-to-br from-indigo-600/15 via-blue-600/10 to-transparent rounded-full blur-[140px]" />
+
+      {/* Bottom Right Violet Ambient Flare */}
+      <div className="absolute -bottom-32 -right-32 w-[550px] h-[550px] bg-gradient-to-tl from-purple-600/15 via-indigo-600/10 to-transparent rounded-full blur-[140px]" />
+    </div>
   );
 };
 
-export default BackgroundBlobs;
+export default memo(BackgroundBlobs);

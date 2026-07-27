@@ -32,41 +32,38 @@ const LoginPage = () => {
   const fields = [
     {
       name: "email",
-      label: "Email",
+      label: "Email Address",
       type: "email",
-      placeholder: "Enter your email",
+      placeholder: "name@example.com",
     },
     {
       name: "password",
       label: "Password",
       type: "password",
-      placeholder: "Enter your password",
+      placeholder: "••••••••",
     },
   ];
 
   return (
-    <AuthLayout title="Login">
+    <AuthLayout title="Welcome Back" subtitle="Log in to access your cloud workspaces and AI assistant">
       <AuthForm
         fields={fields}
         form={form}
         onChange={handleChange}
         onSubmit={handleSubmit}
         loading={mutation.isPending}
-        buttonText="Login"
-        error={
-          mutation.error?.response?.data?.error
-        }
+        buttonText="Sign In"
+        error={mutation.error?.response?.data?.error}
       />
 
-      {/* nagivate to signup page */}
-      <div className="mt-6 text-center text-gray-300">
-        Don't have an account?
-
+      {/* Navigate to Signup Page */}
+      <div className="mt-6 text-center text-xs text-slate-400">
+        <span>Don't have an account?</span>
         <Link
           to="/auth/signup"
-          className="text-blue-400 ml-2"
+          className="text-blue-400 font-semibold ml-1.5 hover:underline"
         >
-          Signup
+          Create account
         </Link>
       </div>
     </AuthLayout>

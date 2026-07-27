@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Play, Loader2, Folder } from "lucide-react";
+import { Play, Loader2, Folder, Code2, Eye, PanelLeftOpen } from "lucide-react";
 import FileTab from "./FileTab";
 
 const TabsBar = ({
@@ -13,15 +13,19 @@ const TabsBar = ({
   isRunning,
   onRun,
   setShowFiles,
+  toggleChat,
+  isChatVisible,
 }) => {
-
   const handleShowFiles = useCallback(() => {
     setShowFiles(true);
   }, [setShowFiles]);
 
-  const handleSelectTab = useCallback((tab) => {
-    setActiveTab(tab);
-  }, [setActiveTab]);
+  const handleSelectTab = useCallback(
+    (tab) => {
+      setActiveTab(tab);
+    },
+    [setActiveTab],
+  );
 
   const handleRun = useCallback(() => {
     if (!isRunning) onRun();
@@ -30,79 +34,82 @@ const TabsBar = ({
   const isPreviewDisabled = !iframeUrl || isRunning;
 
   return (
-    <div className="h-[55px] flex items-center justify-between bg-gray-900/50 border-b border-gray-700">
-      {/* Folder icon for visible for mobile and tablet */}
+    <div className="h-[52px] flex items-center justify-between bg-[#090d16]/95 border-b border-slate-800/80 px-2 shrink-0 select-none backdrop-blur-2xl">
+      {/* Mobile folder menu button */}
       <button
         onClick={handleShowFiles}
         aria-label="Open file explorer"
-        className="md:hidden ml-2 h-[80%] w-[40px] flex items-center justify-center
-        bg-gray-700/80 hover:bg-gray-600 text-gray-200 border border-gray-600
-        rounded-lg transition"
+        className="md:hidden mr-2 p-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
       >
         <Folder size={18} />
       </button>
 
-      {/* file tabs */}
-      <div className="flex gap-2 flex-grow overflow-x-auto px-2">
+
+
+      {/* File Tabs Container */}
+      <div className="flex items-center gap-1.5 flex-1 overflow-x-auto hide-scrollbar py-1">
         {openFiles.map((file) => (
           <FileTab
             key={file}
             fileName={file}
             isActive={activeFile === file}
             disabled={activeTab === "preview"}
-            onClick={() => onSelect(file)}
-            onClose={() => onClose(file)}
+            onClick={onSelect}
+            onClose={onClose}
           />
         ))}
       </div>
 
-      {/* code and preview button*/}
-      <div className="flex items-center justify-center h-[80%] bg-gray-800/60 border border-gray-700 rounded-full mx-3 overflow-hidden">
+      {/* Code / Preview Switcher */}
+      <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800/90 rounded-xl mx-2 shrink-0">
         <button
           onClick={() => handleSelectTab("code")}
-          className={`px-4 py-2.5 ${
-            activeTab === "code" ? "bg-gray-700 text-white" : "text-gray-400"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === "code"
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm"
+              : "text-slate-400 hover:text-slate-200"
           }`}
         >
-          Code
+          <Code2 size={13} />
+          <span>Code</span>
         </button>
 
         <button
           disabled={isPreviewDisabled}
           onClick={() => !isPreviewDisabled && handleSelectTab("preview")}
-          className={`px-4 py-2.5 transition
-            ${
-              activeTab === "preview"
-                ? "bg-gray-700 text-white"
-                : isPreviewDisabled
-                ? "text-gray-500 cursor-not-allowed opacity-40"
-                : "text-gray-400 hover:text-gray-200 cursor-pointer"
-            }
-          `}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === "preview"
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm"
+              : isPreviewDisabled
+              ? "text-slate-600 cursor-not-allowed opacity-40"
+              : "text-slate-400 hover:text-slate-200 cursor-pointer"
+          }`}
         >
-          Preview
+          <Eye size={13} />
+          <span>Preview</span>
         </button>
       </div>
 
-      {/* run button */}
+      {/* Run WebContainer Button */}
       <button
         onClick={handleRun}
         disabled={isRunning}
         aria-label="Run project"
-        className={`m-2 flex items-center justify-center gap-1.5 w-[40px] md:w-[80px] h-[80%] rounded-md 
-          ${
-            isRunning
-              ? "bg-gray-600 text-gray-300"
-              : "bg-green-600 hover:bg-green-700 text-white cursor-pointer"
-          }
-        `}
+        className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg shrink-0 cursor-pointer ${
+          isRunning
+            ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-50"
+            : "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white border border-emerald-500/50 shadow-emerald-600/20 active:scale-95"
+        }`}
       >
         {isRunning ? (
-          <Loader2 className="animate-spin" size={16} />
+          <>
+            <Loader2 className="animate-spin" size={14} />
+            <span className="hidden md:inline">Starting...</span>
+          </>
         ) : (
           <>
-            <Play size={16} fill="white" />
-            <span className="hidden md:block">Run</span>
+            <Play size={13} fill="currentColor" />
+            <span className="hidden md:inline">Run</span>
           </>
         )}
       </button>

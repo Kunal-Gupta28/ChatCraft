@@ -1,8 +1,11 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
-// import page
+// import pages
 import Landingpage from "../../pages/Landing";
+import FeaturesPage from "../../pages/FeaturesPage";
+import HowItWorksPage from "../../pages/HowItWorksPage";
+import ArchitecturePage from "../../pages/ArchitecturePage";
 import LoginPage from "../../pages/auth/LoginPage";
 import SignupPage from "../../pages/auth/SignupPage";
 import NotFound from "../../pages/NotFound";
@@ -11,9 +14,10 @@ import NotFound from "../../pages/NotFound";
 const Home = lazy(() => import("../../pages/Home"));
 const Project = lazy(() => import("../../pages/Project"));
 
-// loader
+// loader & error boundary
 import Loader from "../../components/PageLoader";
 import ComponentLoader from "../../components/LoadingAnimation";
+import ErrorBoundary from "../../components/ErrorBoundary";
 
 // layout 
 import ProtectedLayout from "../layouts/ProtectedLayout";
@@ -22,35 +26,96 @@ import ProjectLayout from "../layouts/ProjectLayout";
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Landingpage />} />
+      {/* Landing / Marketing Routes */}
+      <Route
+        path="/"
+        element={
+          <ErrorBoundary>
+            <Landingpage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/features"
+        element={
+          <ErrorBoundary>
+            <FeaturesPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/how-it-works"
+        element={
+          <ErrorBoundary>
+            <HowItWorksPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/architecture"
+        element={
+          <ErrorBoundary>
+            <ArchitecturePage />
+          </ErrorBoundary>
+        }
+      />
 
-      <Route path="/auth/login" element={<LoginPage />} />
+      {/* Auth Routes */}
+      <Route
+        path="/auth/login"
+        element={
+          <ErrorBoundary>
+            <LoginPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/auth/signup"
+        element={
+          <ErrorBoundary>
+            <SignupPage />
+          </ErrorBoundary>
+        }
+      />
 
-      <Route path="/auth/signup" element={<SignupPage />} />
-
+      {/* Protected Application Routes */}
       <Route element={<ProtectedLayout />}>
         <Route
-          path="/home"
+          path="/dashboard"
           element={
-            <Suspense fallback={<Loader />}>
-              <Home />
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<Loader />}>
+                <Home />
+              </Suspense>
+            </ErrorBoundary>
           }
         />
+
+        <Route path="/home" element={<Navigate to="/dashboard" replace />} />
 
         <Route
           path="/project/:projectId"
           element={
-            <Suspense fallback={<ComponentLoader />}>
-              <ProjectLayout>
-                <Project />
-              </ProjectLayout>
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<ComponentLoader />}>
+                <ProjectLayout>
+                  <Project />
+                </ProjectLayout>
+              </Suspense>
+            </ErrorBoundary>
           }
         />
       </Route>
 
-      <Route path="*" element={<NotFound />} />
+      {/* Catch-all Not Found Route */}
+      <Route
+        path="*"
+        element={
+          <ErrorBoundary>
+            <NotFound />
+          </ErrorBoundary>
+        }
+      />
     </Routes>
   );
 };

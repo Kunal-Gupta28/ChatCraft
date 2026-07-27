@@ -13,7 +13,7 @@ const useAuthMutation = (mutationFn) => {
     onSuccess: (data) => {
       setUser(data.user);
       localStorage.setItem("token", data.token);
-      navigate("/home");
+      navigate("/dashboard");
     },
   });
 };
