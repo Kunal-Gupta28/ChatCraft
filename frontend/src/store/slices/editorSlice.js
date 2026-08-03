@@ -13,12 +13,21 @@ const initialState = {
   runError: "",
 };
 
+const cleanObj = (obj) => {
+  if (!obj || typeof obj !== "object") return obj;
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch {
+    return { ...obj };
+  }
+};
+
 const editorSlice = createSlice({
   name: "editor",
   initialState,
   reducers: {
     setFileTree: (state, action) => {
-      state.fileTree = action.payload;
+      state.fileTree = cleanObj(action.payload);
     },
     setOpenFiles: (state, action) => {
       state.openFiles = action.payload;

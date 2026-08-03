@@ -23,7 +23,8 @@ const CollaboratorsList = ({
       {filteredProjectUsers.length > 0 ? (
         <ul className="space-y-1.5">
           {filteredProjectUsers.map((user) => {
-            const isProjectOwner = user._id === projectOwnerId;
+            const isProjectOwner =
+              String(user._id) === String(projectOwnerId);
 
             return (
               <li

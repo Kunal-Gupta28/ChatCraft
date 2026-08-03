@@ -1,5 +1,6 @@
 import { memo, useCallback } from "react";
-import { Play, Loader2, Folder, Code2, Eye, PanelLeftOpen } from "lucide-react";
+import { Play, Loader2, Folder, Code2, Eye, Sparkles, X } from "lucide-react";
+import { useCodeEditor } from "../../../contexts/codeEditor.context";
 import FileTab from "./FileTab";
 
 const TabsBar = ({
@@ -15,7 +16,10 @@ const TabsBar = ({
   setShowFiles,
   toggleChat,
   isChatVisible,
+  editorPresence = [],
 }) => {
+  const { activeSuggestion, setActiveSuggestion } = useCodeEditor();
+
   const handleShowFiles = useCallback(() => {
     setShowFiles(true);
   }, [setShowFiles]);
@@ -32,6 +36,9 @@ const TabsBar = ({
   }, [isRunning, onRun]);
 
   const isPreviewDisabled = !iframeUrl || isRunning;
+  const activeCollaborators = editorPresence.filter(
+    (presence) => presence.filePath === activeFile,
+  );
 
   return (
     <div className="h-[52px] flex items-center justify-between bg-[#090d16]/95 border-b border-slate-800/80 px-2 shrink-0 select-none backdrop-blur-2xl">
@@ -39,26 +46,66 @@ const TabsBar = ({
       <button
         onClick={handleShowFiles}
         aria-label="Open file explorer"
-        className="md:hidden mr-2 p-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
+        className="md:hidden mr-1.5 px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 transition cursor-pointer flex items-center gap-1.5 shrink-0"
       >
-        <Folder size={18} />
+        <Folder size={15} />
+        <span className="text-xs font-semibold">Files</span>
       </button>
 
 
 
       {/* File Tabs Container */}
       <div className="flex items-center gap-1.5 flex-1 overflow-x-auto hide-scrollbar py-1">
-        {openFiles.map((file) => (
-          <FileTab
-            key={file}
-            fileName={file}
-            isActive={activeFile === file}
-            disabled={activeTab === "preview"}
-            onClick={onSelect}
-            onClose={onClose}
-          />
-        ))}
+        {activeSuggestion && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 text-purple-200 border border-purple-400/50 shadow-md shadow-purple-950/40 text-xs font-bold shrink-0">
+            <Sparkles size={13} className="text-purple-400 animate-pulse" />
+            <span>⚡ AI Code Review</span>
+            <button
+              type="button"
+              onClick={() => setActiveSuggestion(null)}
+              className="p-0.5 rounded text-purple-400 hover:text-white hover:bg-purple-900/50 transition ml-1 cursor-pointer"
+              title="Close review"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
+        {openFiles.map((file) => {
+          const collaborators = editorPresence.filter(
+            (presence) => presence.filePath === file,
+          );
+          return (
+            <FileTab
+              key={file}
+              fileName={file}
+              isActive={activeFile === file}
+              disabled={activeTab === "preview"}
+              collaborators={collaborators}
+              onClick={onSelect}
+              onClose={onClose}
+            />
+          );
+        })}
       </div>
+
+      {activeCollaborators.length > 0 && (
+        <div className="hidden xl:flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/70 px-2 py-1 text-[10px] text-slate-400 shrink-0">
+          <span className="flex -space-x-1.5">
+            {activeCollaborators.slice(0, 3).map((presence) => (
+              <span
+                key={presence.connectionId}
+                title={`${presence.username} is editing ${activeFile}`}
+                className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-950 text-[8px] font-bold text-slate-950"
+                style={{ backgroundColor: ["#22d3ee", "#a78bfa", "#f59e0b", "#34d399", "#fb7185"][presence.colorIndex % 5] }}
+              >
+                {presence.username?.charAt(0)?.toUpperCase()}
+              </span>
+            ))}
+          </span>
+          <span>{activeCollaborators.map((presence) => presence.username).join(", ")} editing</span>
+        </div>
+      )}
 
       {/* Code / Preview Switcher */}
       <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800/90 rounded-xl mx-2 shrink-0">

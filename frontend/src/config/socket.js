@@ -65,6 +65,13 @@ export const sendMessage = (eventName, data) => {
   });
 };
 
+// Send lightweight real-time events that do not need a server acknowledgment.
+export const emitSocketEvent = (eventName, data) => {
+  if (!socketInstance?.connected) return false;
+  socketInstance.emit(eventName, data);
+  return true;
+};
+
 // disconnect socket
 export const disconnectSocket = () => {
   if (!socketInstance) return;

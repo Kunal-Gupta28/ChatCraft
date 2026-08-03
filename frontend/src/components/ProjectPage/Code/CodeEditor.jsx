@@ -1,8 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, Folder } from "lucide-react";
 import axiosInstance from "../../../config/axios";
 import { useProject } from "../../../contexts/project.context";
 import { useCodeEditor } from "../../../contexts/codeEditor.context";
+import { useUser } from "../../../contexts/user.context";
+import { emitSocketEvent } from "../../../config/socket";
 import { getWebContainer } from "../../../config/webContainer";
 import {
   applyFileChanges,
@@ -13,6 +15,7 @@ import FileTree from "./FileTree";
 import TabsBar from "./TabsBar";
 import EditorPane from "./EditorPane";
 import PreviewPane from "./PreviewPane";
+import CodeDiffReview from "./CodeDiffReview";
 import debounce from "./utils/debounce";
 
 const parseCommand = (command) => {
@@ -187,12 +190,15 @@ const buildFallbackPreviewUrl = (runtimeFiles) => {
   return URL.createObjectURL(blob);
 };
 
-const CodeEditor = ({ toggleChat, isChatVisible }) => {
+const CodeEditor = ({ toggleChat, isChatVisible, editorPresence = [] }) => {
   const { project } = useProject();
-  const { fileTree, webContainer, setWebContainer } = useCodeEditor();
+  const { user: currentUser } = useUser();
+  const { fileTree, webContainer, setWebContainer, activeSuggestion, setActiveSuggestion } = useCodeEditor();
   const runProcessRef = useRef(null);
   const runAttemptRef = useRef(0);
   const listenerCleanupRef = useRef([]);
+  const presenceTimerRef = useRef(null);
+  const pendingPresenceRef = useRef(null);
 
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
@@ -206,6 +212,39 @@ const CodeEditor = ({ toggleChat, isChatVisible }) => {
   const [showFiles, setShowFiles] = useState(false);
 
   const fileContentMap = useMemo(() => flattenFileTree(fileTree), [fileTree]);
+  const collaboratorPresence = useMemo(
+    () =>
+      editorPresence.filter(
+        (presence) => String(presence.userId) !== String(currentUser?._id),
+      ),
+    [currentUser?._id, editorPresence],
+  );
+
+  const emitEditorPresence = useCallback((filePath, cursor) => {
+    emitSocketEvent("project-editor-presence", {
+      filePath: filePath || null,
+      cursor: cursor || undefined,
+    });
+  }, []);
+
+  const handleCursorChange = useCallback(
+    (cursor) => {
+      if (!activeFile || !cursor) return;
+
+      pendingPresenceRef.current = { filePath: activeFile, cursor };
+      if (presenceTimerRef.current) return;
+
+      presenceTimerRef.current = setTimeout(() => {
+        const nextPresence = pendingPresenceRef.current;
+        pendingPresenceRef.current = null;
+        presenceTimerRef.current = null;
+        if (nextPresence) {
+          emitEditorPresence(nextPresence.filePath, nextPresence.cursor);
+        }
+      }, 75);
+    },
+    [activeFile, emitEditorPresence],
+  );
 
   useEffect(() => {
     setModifiedFiles({});
@@ -216,6 +255,26 @@ const CodeEditor = ({ toggleChat, isChatVisible }) => {
       current && fileContentMap[current] !== undefined ? current : null,
     );
   }, [fileContentMap]);
+
+  useEffect(() => {
+    if (presenceTimerRef.current) {
+      clearTimeout(presenceTimerRef.current);
+      presenceTimerRef.current = null;
+    }
+    pendingPresenceRef.current = null;
+    emitEditorPresence(
+      activeFile,
+      activeFile ? { lineNumber: 1, column: 1 } : undefined,
+    );
+  }, [activeFile, emitEditorPresence]);
+
+  useEffect(
+    () => () => {
+      if (presenceTimerRef.current) clearTimeout(presenceTimerRef.current);
+      emitEditorPresence(null);
+    },
+    [emitEditorPresence],
+  );
 
   const debouncedSave = useMemo(() => {
     if (!project?._id) return debounce(() => {}, 800);
@@ -434,7 +493,7 @@ const CodeEditor = ({ toggleChat, isChatVisible }) => {
 
       {/* Mobile Drawer */}
       <div
-        className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-md transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md transition-opacity duration-300 md:hidden ${
           showFiles
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -442,21 +501,47 @@ const CodeEditor = ({ toggleChat, isChatVisible }) => {
         onClick={() => setShowFiles(false)}
       >
         <div
-          className={`absolute left-0 top-0 h-full w-3/4 border-r border-slate-800 bg-[#090d16] p-2 transition-transform duration-300 ${
+          className={`absolute left-0 top-0 h-full w-[280px] max-w-[85vw] border-r border-slate-800 bg-[#090d16] p-3 transition-transform duration-300 flex flex-col ${
             showFiles ? "translate-x-0" : "-translate-x-full"
           }`}
           onClick={(event) => event.stopPropagation()}
         >
-          <FileTree
-            tree={fileTree}
-            activeFile={activeFile}
-            activeTab={activeTab}
-            openFolders={openFolders}
-            setOpenFolders={setOpenFolders}
-            onFileSelect={openFile}
-            toggleChat={toggleChat}
-            isChatVisible={isChatVisible}
-          />
+          {/* Mobile Drawer Header */}
+          <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800 shrink-0 px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                <Folder size={14} />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                File Explorer
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFiles(false)}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition cursor-pointer"
+              title="Close Explorer"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <FileTree
+              tree={fileTree}
+              activeFile={activeFile}
+              activeTab={activeTab}
+              openFolders={openFolders}
+              setOpenFolders={setOpenFolders}
+              onFileSelect={(file) => {
+                openFile(file);
+                setShowFiles(false);
+              }}
+              toggleChat={toggleChat}
+              isChatVisible={isChatVisible}
+            />
+          </div>
         </div>
       </div>
 
@@ -489,14 +574,32 @@ const CodeEditor = ({ toggleChat, isChatVisible }) => {
           setShowFiles={setShowFiles}
           toggleChat={toggleChat}
           isChatVisible={isChatVisible}
+          editorPresence={collaboratorPresence}
         />
 
         <div className="h-full flex-1 min-h-0 overflow-hidden">
-          {activeTab === "code" ? (
+          {activeSuggestion ? (
+            <CodeDiffReview
+              currentFileTree={fileTree}
+              suggestion={activeSuggestion.suggestion}
+              onApply={async (payload) => {
+                if (typeof activeSuggestion.onApply === "function") {
+                  await activeSuggestion.onApply(payload);
+                } else {
+                  await applyFileChanges(payload);
+                }
+              }}
+              onClose={() => setActiveSuggestion(null)}
+            />
+          ) : activeTab === "code" ? (
             <EditorPane
               activeFile={activeFile}
               code={code}
               updateCode={updateCode}
+              remoteCursors={collaboratorPresence.filter(
+                (presence) => presence.filePath === activeFile,
+              )}
+              onCursorChange={handleCursorChange}
             />
           ) : (
             <PreviewPane iframeUrl={iframeUrl} />

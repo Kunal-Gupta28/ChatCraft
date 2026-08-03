@@ -11,13 +11,16 @@ export const useUser = () => {
   const setUser = useCallback(
     (userData) => {
       if (typeof userData === "function") {
-        const nextUser = userData(user);
-        dispatch(setUserAction(nextUser));
+        dispatch((_, getState) => {
+          const currentUser = getState().user.user;
+          const nextUser = userData(currentUser);
+          dispatch(setUserAction(nextUser));
+        });
       } else {
         dispatch(setUserAction(userData));
       }
     },
-    [dispatch, user]
+    [dispatch]
   );
 
   return { user, setUser };

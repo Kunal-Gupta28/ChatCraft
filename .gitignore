@@ -1,0 +1,12 @@
+# Dependencies & Output
+node_modules
+dist
+.env
+
+# OS & Editor
+.DS_Store
+*.local
+
+# Documentation & Audit reports
+handover.md
+rerender_analysis_report.md

@@ -10,202 +10,152 @@ const {
   deleteProject,
 } = require("../services/project.service");
 const { validationResult } = require("express-validator");
-const userModel = require("../models/user.model");
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
 
 // create new project
-module.exports.createController = async (req, res) => {
-  // validation
+module.exports.createController = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  try {
-    const { projectName } = req.body;
-    const newProject = await createService({ projectName, userId: req.user.userId });
-    return res.status(201).json({
-      success: true,
-      data: newProject,
-    });
-  } catch (error) {
-    return res.status(500).json({message: error.message});
-  }
-};
+  const { projectName } = req.body;
+  const newProject = await createService({ projectName, userId: req.user.userId });
+  return res.status(201).json({
+    success: true,
+    data: newProject,
+  });
+});
 
-// get all project by using user Id
-module.exports.getAllProject = async (req, res) => {
-  try {
-    const logInUser = await userModel.findOne({ email: req.user.email });
-    const allProject = await getAllProjectByUserId({ userId: logInUser._id });
-    return res.status(200).json({
-      success: true,
-      allProject: allProject,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+// get all project by using user Id (with server-side chunked pagination & search)
+module.exports.getAllProject = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 9, search = "", sortBy = "date-newest" } = req.query;
+
+  const result = await getAllProjectByUserId({
+    userId: req.user.userId,
+    page,
+    limit,
+    search,
+    sortBy,
+  });
+
+  return res.status(200).json({
+    success: true,
+    allProject: result.projects,
+    pagination: result.pagination,
+  });
+});
 
 // add user to project
-module.exports.addUserToProject = async (req, res) => {
+module.exports.addUserToProject = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  try {
-    const { projectId, users } = req.body;
-    const isLoggedInUser = await userModel.findOne({ email: req.user.email });
-    const updatedProject = await addUserToProject({
-      projectId,
-      users,
-      userId: isLoggedInUser._id,
-    });
-    return res.status(200).json({
-      success: true,
-      message: "Users added to project successfully"
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  const { projectId, users } = req.body;
+  await addUserToProject({
+    projectId,
+    users,
+    userId: req.user.userId,
+  });
+  return res.status(200).json({
+    success: true,
+    message: "Users added to project successfully",
+  });
+});
 
 // remove user from project
-module.exports.removeUserFromProject = async (req, res) => {
+module.exports.removeUserFromProject = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  try {
-    const { projectId, userId } = req.body;
-    const updatedProject = await removeUserFromProject({ projectId, userId });
-    return res.status(200).json({
-      success: true,
-      message: "User removed from project",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  const { projectId, userId: userToRemoveId } = req.body;
+  await removeUserFromProject({
+    projectId,
+    userToRemoveId,
+    requestingUserId: req.user.userId,
+  });
+  return res.status(200).json({
+    success: true,
+    message: "User removed from project",
+  });
+});
 
-// get project by useing project id
-module.exports.getProjectById = async (req, res) => {
+// get project by using project id
+module.exports.getProjectById = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  try {
-    const project = await getProjectById({
-      projectId,
-      userId: req.user.userId,
-    });
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found or user not authorized",
-      });
-    }
-    return res.status(200).json({ project });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const project = await getProjectById({
+    projectId,
+    userId: req.user.userId,
+  });
+  if (!project) {
+    throw new AppError("Project not found or user not authorized", 404);
   }
-};
+  return res.status(200).json({ project });
+});
 
 // update file tree content
-module.exports.updateFileTree = async (req, res) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  try {
-    const { projectId, updatedfile, newCode } = req.body;
-    const updatedProject = await updateFileTree({
-      projectId,
-      updatedfile,
-      newCode,
-      userId: req.user.userId,
-    });
-    return res.status(200).json({
-      success: true,
-      updatedfile,
-      newCode,
-      projectId: updatedProject._id,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// rename proejct name in database
-module.exports.renameProject = async (req, res) => {
-  // validation
+module.exports.updateFileTree = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  try {
-    const { projectId, newProjectName } = req.body;
-    const updatedProjectName = await renameProject({
-      projectId,
-      newProjectName,
-      userId:req.user.userId
-    });
+  const { projectId, updatedfile, newCode } = req.body;
+  const updatedProject = await updateFileTree({
+    projectId,
+    updatedfile,
+    newCode,
+    userId: req.user.userId,
+  });
+  return res.status(200).json({
+    success: true,
+    updatedfile,
+    newCode,
+    projectId: updatedProject._id,
+  });
+});
 
-    return res.status(200).json({
-      success: true,
-      project: updatedProjectName,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+// rename project name in database
+module.exports.renameProject = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
-};
+
+  const { projectId, newProjectName } = req.body;
+  const updatedProjectName = await renameProject({
+    projectId,
+    newProjectName,
+    userId: req.user.userId,
+  });
+
+  return res.status(200).json({
+    success: true,
+    project: updatedProjectName,
+  });
+});
 
 // delete project from database
-module.exports.deleteProject = async (req, res) => {
+module.exports.deleteProject = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  try {
-    const { projectId } = req.params;
-    const loggedInUser = await userModel.findOne({ email: req.user.email });
-    const updatedProjectList = await deleteProject({
-      projectId,
-      userId: loggedInUser._id,
-    });
+  const { projectId } = req.params;
+  await deleteProject({
+    projectId,
+    userId: req.user.userId,
+  });
 
-    return res.status(200).json({
-      success: true,
-      message: "Project deleted successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-   
+  return res.status(200).json({
+    success: true,
+    message: "Project deleted successfully",
+  });
+});

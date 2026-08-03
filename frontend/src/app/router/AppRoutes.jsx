@@ -6,8 +6,10 @@ import Landingpage from "../../pages/Landing";
 import FeaturesPage from "../../pages/FeaturesPage";
 import HowItWorksPage from "../../pages/HowItWorksPage";
 import ArchitecturePage from "../../pages/ArchitecturePage";
+import SecurityPage from "../../pages/SecurityPage";
 import LoginPage from "../../pages/auth/LoginPage";
 import SignupPage from "../../pages/auth/SignupPage";
+import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
 import NotFound from "../../pages/NotFound";
 
 // lazy import
@@ -59,6 +61,14 @@ const AppRoutes = () => {
           </ErrorBoundary>
         }
       />
+      <Route
+        path="/security"
+        element={
+          <ErrorBoundary>
+            <SecurityPage />
+          </ErrorBoundary>
+        }
+      />
 
       {/* Auth Routes */}
       <Route
@@ -74,6 +84,14 @@ const AppRoutes = () => {
         element={
           <ErrorBoundary>
             <SignupPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/auth/forgot-password"
+        element={
+          <ErrorBoundary>
+            <ForgotPasswordPage />
           </ErrorBoundary>
         }
       />

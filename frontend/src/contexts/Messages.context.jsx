@@ -16,7 +16,12 @@ export const useMessages = () => {
     (val) => {
       if (typeof val === "function") {
         dispatch((_, getState) => {
-          const current = getState().chat.messages;
+          let current = getState().chat.messages || [];
+          try {
+            current = JSON.parse(JSON.stringify(current));
+          } catch {
+            current = current.map((m) => ({ ...m }));
+          }
           const next = val(current);
           dispatch(setMessagesAction(next));
         });

@@ -10,6 +10,15 @@ const getInitialUser = () => {
   }
 };
 
+const cleanObj = (obj) => {
+  if (!obj || typeof obj !== "object") return obj;
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch {
+    return { ...obj };
+  }
+};
+
 const userSlice = createSlice({
   name: "user",
   initialState: {
@@ -17,7 +26,7 @@ const userSlice = createSlice({
   },
   reducers: {
     setUser: (state, action) => {
-      state.user = action.payload;
+      state.user = cleanObj(action.payload);
       if (action.payload) {
         localStorage.setItem("user", JSON.stringify(action.payload));
       } else {

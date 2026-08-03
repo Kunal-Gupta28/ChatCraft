@@ -24,7 +24,7 @@ const messageSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["user", "ai"],
+      enum: ["user", "ai", "audio"],
       default: "user",
     },
 
@@ -32,6 +32,45 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       required: true,
     },
+
+    codeSuggestion: {
+      type: mongoose.Schema.Types.Mixed,
+      default: undefined,
+    },
+
+    audioUrl: {
+      type: String,
+      default: null,
+    },
+
+    audioDuration: {
+      type: Number,
+      default: null,
+    },
+
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+
+    replyTo: {
+      id: { type: String, default: null },
+      senderName: { type: String, default: null },
+      text: { type: String, default: null },
+    },
+
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        userId: { type: String, required: true },
+        username: { type: String, default: "" },
+      },
+    ],
   },
   {
     timestamps: true,

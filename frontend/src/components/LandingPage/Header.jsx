@@ -70,6 +70,19 @@ const Header = () => {
           Architecture
         </NavLink>
 
+        <NavLink
+          to="/security"
+          className={({ isActive }) =>
+            `px-3.5 py-1.5 rounded-xl transition-all ${
+              isActive
+                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-sm"
+                : "text-slate-400 hover:text-slate-200 border border-transparent"
+            }`
+          }
+        >
+          Security
+        </NavLink>
+
         <a
           href="https://github.com/Kunal-Gupta28/ChatCraft"
           target="_blank"

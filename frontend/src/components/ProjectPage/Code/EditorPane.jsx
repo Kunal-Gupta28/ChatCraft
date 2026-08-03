@@ -2,7 +2,7 @@ import { memo, useCallback } from "react";
 import { Code2, Sparkles, Play } from "lucide-react";
 import MarkdownWithCode from "./MarkdownWithCode";
 
-const EditorPane = ({ activeFile, code, updateCode }) => {
+const EditorPane = ({ activeFile, code, updateCode, remoteCursors, onCursorChange }) => {
   const handleChange = useCallback(
     (val) => {
       if (!activeFile) return;
@@ -65,6 +65,8 @@ const EditorPane = ({ activeFile, code, updateCode }) => {
         fileName={activeFile}
         code={code}
         onChange={handleChange}
+        remoteCursors={remoteCursors}
+        onCursorChange={onCursorChange}
       />
     </div>
   );

@@ -29,25 +29,139 @@ module.exports.createService = async ({ projectName, userId }) => {
   }
 };
 
-// get all project a particular user
-module.exports.getAllProjectByUserId = async ({ userId }) => {
+// get all project a particular user with server-side pagination & filtering
+module.exports.getAllProjectByUserId = async ({
+  userId,
+  page = 1,
+  limit = 9,
+  search = "",
+  sortBy = "date-newest",
+}) => {
   if (!userId) throw new Error("user id is required");
 
-  return projectModel.aggregate([
-    {
-      $match: { users: userId },
-    },
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = parseInt(limit, 10) > 0 ? parseInt(limit, 10) : 9;
+  const skipNum = (pageNum - 1) * limitNum;
+
+  const userObjId = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId)
+    : userId;
+  const userStrId = String(userId);
+
+  // Match condition for user projects & optional search
+  const matchStage = {
+    $or: [
+      { users: userObjId },
+      { users: userStrId },
+      { owner: userStrId },
+    ],
+  };
+
+  if (search && search.trim()) {
+    matchStage.projectName = { $regex: search.trim(), $options: "i" };
+  }
+
+  // Sort condition
+  let sortStage = { createdAt: -1, _id: -1 };
+  if (sortBy === "date-oldest") sortStage = { createdAt: 1, _id: 1 };
+  else if (sortBy === "name-asc") sortStage = { projectName: 1 };
+  else if (sortBy === "name-desc") sortStage = { projectName: -1 };
+  else if (sortBy === "members-desc") sortStage = { memberCount: -1 };
+  else if (sortBy === "members-asc") sortStage = { memberCount: 1 };
+
+  const pipeline = [
+    { $match: matchStage },
     {
       $project: {
         _id: 1,
         projectName: 1,
         owner: 1,
+        createdAt: 1,
         memberCount: {
           $size: { $ifNull: ["$users", []] },
         },
       },
     },
-  ]);
+    { $sort: sortStage },
+    {
+      $facet: {
+        metadata: [
+          {
+            $group: {
+              _id: null,
+              totalProjects: { $sum: 1 },
+              ownedCount: {
+                $sum: {
+                  $cond: [
+                    {
+                      $or: [
+                        { $eq: ["$owner", userStrId] },
+                        { $eq: ["$owner", userObjId] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              sharedCount: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$owner", userStrId] },
+                        { $ne: ["$owner", userObjId] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        projects: [{ $skip: skipNum }, { $limit: limitNum }],
+      },
+    },
+  ];
+
+  const [result] = await projectModel.aggregate(pipeline);
+
+  const meta = result?.metadata?.[0] || {
+    totalProjects: 0,
+    ownedCount: 0,
+    sharedCount: 0,
+  };
+  const projects = result?.projects || [];
+  const totalPages = Math.max(1, Math.ceil(meta.totalProjects / limitNum));
+
+  return {
+    projects,
+    pagination: {
+      totalProjects: meta.totalProjects,
+      ownedCount: meta.ownedCount,
+      sharedCount: meta.sharedCount,
+      totalPages,
+      currentPage: pageNum,
+      limit: limitNum,
+    },
+  };
+};
+
+const ensureProjectOwner = async ({ projectId, userId }) => {
+  const project = await projectModel.findOne({
+    _id: projectId,
+    owner: String(userId),
+  });
+
+  if (!project) {
+    const error = new Error("Only the project owner can manage collaborators");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return project;
 };
 
 // adding collaborators in a project
@@ -65,16 +179,10 @@ module.exports.addUserToProject = async ({ projectId, users, userId }) => {
   if (users.some((u) => !mongoose.Types.ObjectId.isValid(u)))
     throw new Error("Invalid userId in users");
 
-  // ensure user is part of project (authorization)
-  const project = await projectModel.findOne({
-    _id: projectId,
-    users: userId,
-  });
+  await ensureProjectOwner({ projectId, userId });
 
-  if (!project) throw new Error("Project not found or user not authorized");
-
-  const updatedProject = await projectModel.findByIdAndUpdate(
-    projectId,
+  await projectModel.findOneAndUpdate(
+    { _id: projectId, owner: String(userId) },
     { $addToSet: { users: { $each: users } } },
     { new: true },
   );
@@ -82,23 +190,42 @@ module.exports.addUserToProject = async ({ projectId, users, userId }) => {
   return true;
 };
 
-// remove the user form the project
-module.exports.removeUserFromProject = async ({ projectId, userId }) => {
-  if (!projectId || !userId) {
-    throw new Error("Missing projectId or userId");
+// remove a collaborator from the project
+module.exports.removeUserFromProject = async ({
+  projectId,
+  userToRemoveId,
+  requestingUserId,
+}) => {
+  if (!projectId || !userToRemoveId || !requestingUserId) {
+    throw new Error("Missing projectId, userToRemoveId, or requestingUserId");
   }
 
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
     throw new Error("Invalid project id");
   }
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user id");
+  if (!mongoose.Types.ObjectId.isValid(userToRemoveId)) {
+    throw new Error("Invalid userToRemoveId");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(requestingUserId)) {
+    throw new Error("Invalid requesting user id");
+  }
+
+  const project = await ensureProjectOwner({
+    projectId,
+    userId: requestingUserId,
+  });
+
+  if (String(project.owner) === String(userToRemoveId)) {
+    const error = new Error("The project owner cannot be removed from the project");
+    error.statusCode = 400;
+    throw error;
   }
 
   const result = await projectModel.updateOne(
-    { _id: projectId },
-    { $pull: { users: userId } },
+    { _id: projectId, owner: String(requestingUserId) },
+    { $pull: { users: userToRemoveId } },
   );
 
   if (result.matchedCount === 0) {
@@ -200,12 +327,17 @@ module.exports.renameProject = async ({
     throw new Error("Project name is required");
   }
 
-  // checking for existance project
-  const existingProject = await projectModel.findOne({ _id: projectId });
+  // Ensure only the project owner can rename the project.
+  const existingProject = await projectModel.findOne({
+    _id: projectId,
+    owner: String(userId),
+  });
 
-  // prject not exist
+  // Project does not exist or the user is not its owner.
   if (!existingProject) {
-    throw new Error("Project not found");
+    const error = new Error("Only the project owner can rename this project");
+    error.statusCode = 403;
+    throw error;
   }
 
   // prevent same-name rename
@@ -214,13 +346,17 @@ module.exports.renameProject = async ({
   }
 
   try {
-    const updatedProject = await projectModel.findByIdAndUpdate(
-      projectId,
+    const updatedProject = await projectModel.findOneAndUpdate(
+      { _id: projectId, owner: String(userId) },
       { projectName: trimmedName },
       { new: true },
     );
 
-    if (!updatedProject) throw new Error("Project not found");
+    if (!updatedProject) {
+      const error = new Error("Only the project owner can rename this project");
+      error.statusCode = 403;
+      throw error;
+    }
     return updatedProject;
   } catch (error) {
     if (error.code === 11000 && error.keyPattern?.projectName) {
@@ -232,7 +368,7 @@ module.exports.renameProject = async ({
   }
 };
 
-// delete the proejct from the database
+// delete the project from the database
 module.exports.deleteProject = async ({ projectId, userId }) => {
   if (!projectId) throw new Error("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(projectId))
@@ -240,12 +376,19 @@ module.exports.deleteProject = async ({ projectId, userId }) => {
 
   const project = await projectModel.findOne({
     _id: projectId,
-    users: userId,
+    owner: String(userId),
   });
 
-  if (!project) throw new Error("Project not found or Unauthorized");
+  if (!project) {
+    const error = new Error("Only the project owner can delete this project");
+    error.statusCode = 403;
+    throw error;
+  }
 
-  const result = await projectModel.deleteOne({ _id: projectId });
+  const result = await projectModel.deleteOne({
+    _id: projectId,
+    owner: String(userId),
+  });
   if (result.deletedCount === 0) {
     throw new Error("Deletion failed");
   }

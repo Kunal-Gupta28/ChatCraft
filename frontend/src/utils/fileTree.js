@@ -99,3 +99,39 @@ export const applyFileChanges = (fileTree, changes) => {
 
   return cloneNode(normalized);
 };
+
+export const mergeFileTrees = (fileTree, changesTree) => {
+  const mergeNode = (baseNode, changeNode) => {
+    const merged = normalizeFileTree(baseNode);
+    const changes = normalizeFileTree(changeNode);
+
+    for (const [name, value] of Object.entries(changes)) {
+      if (isFileNode(value)) {
+        merged[name] = { file: { ...value.file } };
+        continue;
+      }
+
+      const currentValue = isFileNode(merged[name]) ? {} : merged[name];
+      merged[name] = mergeNode(currentValue, value);
+    }
+
+    return merged;
+  };
+
+  return mergeNode(fileTree, changesTree);
+};
+
+export const getFileTreeDiffs = (currentTree, suggestionTree) => {
+  const currentFiles = flattenFileTree(currentTree);
+  const suggestedFiles = flattenFileTree(suggestionTree);
+
+  return Object.entries(suggestedFiles)
+    .filter(([path, next]) => currentFiles[path] !== next)
+    .map(([path, next]) => ({
+      path,
+      previous: currentFiles[path] ?? "",
+      next,
+      kind: currentFiles[path] === undefined ? "added" : "modified",
+    }))
+    .sort((a, b) => a.path.localeCompare(b.path));
+};

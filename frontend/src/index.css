@@ -32,6 +32,43 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Safari / WebKit Pointer Cursor Fix */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.cursor-pointer,
+.cursor-pointer * {
+  cursor: pointer !important;
+}
+
+.collaborator-cursor {
+  border-left: 2px solid currentColor;
+  margin-left: -1px;
+}
+
+.collaborator-cursor-label {
+  border-radius: 3px;
+  color: #020617 !important;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 1px;
+  padding: 1px 4px;
+}
+
+.collaborator-cursor-0 { color: #22d3ee !important; }
+.collaborator-cursor-1 { color: #a78bfa !important; }
+.collaborator-cursor-2 { color: #f59e0b !important; }
+.collaborator-cursor-3 { color: #34d399 !important; }
+.collaborator-cursor-4 { color: #fb7185 !important; }
+
+.collaborator-cursor-label-0 { background: #22d3ee !important; }
+.collaborator-cursor-label-1 { background: #a78bfa !important; }
+.collaborator-cursor-label-2 { background: #f59e0b !important; }
+.collaborator-cursor-label-3 { background: #34d399 !important; }
+.collaborator-cursor-label-4 { background: #fb7185 !important; }
+
 /* Custom linear glassmorphic card utility */
 .glass-panel {
   background-color: rgba(15, 23, 42, 0.75);
@@ -45,14 +82,21 @@ body {
 
 .project-grid {
   display: grid;
-  gap: 1.25rem;
+  gap: 1rem;
   padding-top: 0.5rem;
-  padding-bottom: 3rem;
+  padding-bottom: 1.5rem;
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
-/* sm */
+/* sm (640px) */
 @media (min-width: 640px) {
+  .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* md (768px tablet layout with sidebar) */
+@media (min-width: 768px) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -74,10 +118,10 @@ body {
   }
 }
 
-/* lg (with left sidebar) */
+/* lg (1024px+) */
 @media (min-width: 1024px) {
   .project-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .chatBox_size {
@@ -89,7 +133,7 @@ body {
   }
 }
 
-/* xl */
+/* xl (1280px+) */
 @media (min-width: 1280px) {
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -104,9 +148,9 @@ body {
   }
 }
 
-/* 2xl */
+/* 2xl (1536px+) */
 @media (min-width: 1536px) {
   .project-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

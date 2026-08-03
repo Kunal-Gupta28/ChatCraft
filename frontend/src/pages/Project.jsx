@@ -1,10 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useDispatch } from "react-redux";
 import { useUser } from "../contexts/user.context";
 import { useProject } from "../contexts/project.context";
 import { useMessages } from "../contexts/Messages.context";
 import { useCodeEditor } from "../contexts/codeEditor.context";
+import { useChat } from "../contexts/chat.context";
 import {
   disconnectSocket,
   initializeSocket,
@@ -15,33 +17,27 @@ import {
   teardownWebContainer,
 } from "../config/webContainer";
 import { normalizeFileTree, toWebContainerTree } from "../utils/fileTree";
+import { mergeMessages } from "../utils/mergeMessages";
 import ResponsiveLayout from "../components/ProjectPage/ResponsiveLayout";
 import axiosInstance from "../config/axios";
-
-const mergeMessages = (current, incoming) => {
-  const merged = new Map();
-
-  for (const message of [...current, ...incoming]) {
-    const key = message._id
-      ? String(message._id)
-      : `${message.senderName}-${message.createdAt}-${message.message}`;
-    merged.set(key, message);
-  }
-
-  return [...merged.values()].sort(
-    (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-  );
-};
+import { setSendError } from "../store/slices/chatSlice";
 
 const Project = () => {
   const { projectId } = useParams();
+  const dispatch = useDispatch();
   const { setUser } = useUser();
-  const { project, setProject } = useProject();
+  const { project, setProject, updateProjectDetails } = useProject();
   const { setMessages } = useMessages();
+  const { updateTypingUser, clearTypingUsers } = useChat();
   const { fileTree, setFileTree, webContainer, setWebContainer } =
     useCodeEditor();
+  const [editorPresence, setEditorPresence] = useState([]);
 
   const mountedRef = useRef(false);
+  const typingTimeoutsRef = useRef(new Map());
+  const loadedProjectIdRef = useRef(null);
+  const loadedHistoryRef = useRef(null);
+  const loadedUserRef = useRef(null);
 
   // fetch userdata 
   const { data: userData } = useQuery({
@@ -50,6 +46,7 @@ const Project = () => {
       const { data } = await axiosInstance.get("/getMe");
       return data.user;
     },
+    enabled: !!localStorage.getItem("token"),
   });
 
   // fetch project data 
@@ -64,28 +61,44 @@ const Project = () => {
     enabled: Boolean(projectId),
   });
 
-  // fetch messages
+  // fetch initial messages chunk
   const { data: messageHistory = [] } = useQuery({
     queryKey: ["messages", projectId],
     queryFn: async () => {
       const { data } = await axiosInstance.get(
-        `/project/messages/${projectId}`,
+        `/project/messages/${projectId}?page=1&limit=20`,
       );
-      return data.messages;
+      return data.messages || [];
     },
     enabled: Boolean(projectId),
   });
 
   useEffect(() => {
     setMessages([]);
+    loadedProjectIdRef.current = null;
+    loadedHistoryRef.current = null;
   }, [projectId, setMessages]);
 
   useEffect(() => {
-    if (userData) setUser(userData);
+    clearTypingUsers();
+    typingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    typingTimeoutsRef.current.clear();
+  }, [clearTypingUsers, projectId]);
+
+  useEffect(() => {
+    setEditorPresence([]);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (userData && loadedUserRef.current !== userData._id) {
+      loadedUserRef.current = userData._id;
+      setUser(userData);
+    }
   }, [setUser, userData]);
 
   useEffect(() => {
-    if (!projectData) return;
+    if (!projectData || loadedProjectIdRef.current === projectData._id) return;
+    loadedProjectIdRef.current = projectData._id;
 
     const normalizedFileTree = normalizeFileTree(projectData.fileTree);
     const normalizedProject = {
@@ -97,10 +110,11 @@ const Project = () => {
   }, [projectData, setFileTree, setProject]);
 
   useEffect(() => {
-    if (messageHistory.length > 0) {
+    if (messageHistory.length > 0 && loadedHistoryRef.current !== projectId) {
+      loadedHistoryRef.current = projectId;
       setMessages((current) => mergeMessages(current, messageHistory));
     }
-  }, [messageHistory, setMessages]);
+  }, [messageHistory, projectId, setMessages]);
 
   useEffect(() => {
     let active = true;
@@ -122,31 +136,114 @@ const Project = () => {
     if (!project?._id) return undefined;
 
     initializeSocket(project._id);
+    const typingTimeouts = typingTimeoutsRef.current;
 
     const cleanups = [
       receiveMessage("project-message", (message) => {
         setMessages((current) => mergeMessages(current, [message]));
+        setIsAiThinking(false);
+      }),
+      receiveMessage("project-message-edit", ({ id, message }) => {
+        setMessages((current) =>
+          current.map((m) =>
+            String(m._id || m.id) === String(id)
+              ? { ...m, message, isEdited: true }
+              : m
+          )
+        );
+      }),
+      receiveMessage("project-message-delete", ({ id }) => {
+        const targetId = String(id || "");
+        setMessages((current) =>
+          current.filter((m) => {
+            const mId = String(m._id?._id || m._id || m.id || "");
+            return mId !== targetId;
+          })
+        );
+      }),
+      receiveMessage("project-message-pin", ({ id, isPinned, pinnedAt }) => {
+        setMessages((current) =>
+          current.map((m) =>
+            String(m._id || m.id) === String(id)
+              ? { ...m, isPinned, pinnedAt: pinnedAt || new Date() }
+              : m
+          )
+        );
+      }),
+      receiveMessage("project-message-react", ({ id, reactions }) => {
+        const targetId = String(id || "");
+        setMessages((current) =>
+          current.map((m) => {
+            const mId = String(m._id?._id || m._id || m.id || "");
+            return mId === targetId ? { ...m, reactions } : m;
+          })
+        );
       }),
       receiveMessage("project-files-updated", (payload) => {
         const nextFileTree = normalizeFileTree(payload.fileTree);
         setFileTree(nextFileTree);
-        setProject((current) => ({
-          ...current,
+        updateProjectDetails({
           fileTree: nextFileTree,
           buildCommand: payload.buildCommand,
           startCommand: payload.startCommand,
-        }));
+        });
       }),
-      receiveMessage("project-message-error", (error) => {
-        console.error("Message error:", error.message);
+      receiveMessage("project-typing", ({ userId, username, isTyping }) => {
+        const typingUserId = String(userId || "");
+        if (!typingUserId) return;
+
+        const activeTimeout = typingTimeouts.get(typingUserId);
+        if (activeTimeout) clearTimeout(activeTimeout);
+
+        updateTypingUser({ userId: typingUserId, username, isTyping });
+
+        if (isTyping) {
+          const timeout = setTimeout(() => {
+            updateTypingUser({ userId: typingUserId, isTyping: false });
+            typingTimeouts.delete(typingUserId);
+          }, 2500);
+          typingTimeouts.set(typingUserId, timeout);
+        } else {
+          typingTimeouts.delete(typingUserId);
+        }
+      }),
+      receiveMessage("project-editor-presence-sync", (entries) => {
+        setEditorPresence(Array.isArray(entries) ? entries : []);
+      }),
+      receiveMessage("project-editor-presence", (presence) => {
+        if (!presence?.connectionId || !presence?.filePath) return;
+        setEditorPresence((current) => [
+          ...current.filter((item) => item.connectionId !== presence.connectionId),
+          presence,
+        ]);
+      }),
+      receiveMessage("project-editor-presence-leave", ({ connectionId }) => {
+        setEditorPresence((current) =>
+          current.filter((item) => item.connectionId !== connectionId),
+        );
+      }),
+      receiveMessage("socket-error", ({ message }) => {
+        dispatch(setSendError(message || "Chat action could not be completed."));
       }),
     ];
 
     return () => {
       cleanups.forEach((cleanup) => cleanup?.());
+      typingTimeouts.forEach((timeout) => clearTimeout(timeout));
+      typingTimeouts.clear();
+      clearTypingUsers();
+      setEditorPresence([]);
       disconnectSocket();
     };
-  }, [project?._id, setFileTree, setMessages, setProject]);
+  }, [
+    dispatch,
+    project?._id,
+    setFileTree,
+    setMessages,
+    updateProjectDetails,
+    updateTypingUser,
+    clearTypingUsers,
+  ]);
 
   // Mount fileTree into webContainer safely without re-mounting thrash
   useEffect(() => {
@@ -172,7 +269,7 @@ const Project = () => {
     };
   }, [webContainer]);
 
-  return <ResponsiveLayout />;
+  return <ResponsiveLayout editorPresence={editorPresence} />;
 };
 
 export default Project;

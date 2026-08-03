@@ -52,6 +52,7 @@ const Home = () => {
   const { data: userData } = useQuery({
     queryKey: ["user"],
     queryFn: fetchUser,
+    enabled: !!localStorage.getItem("token"),
   });
 
   useEffect(() => {
@@ -60,17 +61,45 @@ const Home = () => {
     }
   }, [userData, setUser]);
 
-  // fetching all projects and save it in project context
-  const fetchAllProjects = async () => {
-    const { data } = await axiosInstance.get("/project/all");
-    return data.allProject;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
+
+  // Reset to page 1 whenever user searches or changes sorting
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy]);
+
+  // fetching paginated projects chunk from backend
+  const fetchProjectsChunk = async () => {
+    const { data } = await axiosInstance.get("/project/all", {
+      params: {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        sortBy: sortBy,
+      },
+    });
+    return data;
   };
 
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects"],
-    queryFn: fetchAllProjects,
+  const { data: projectResponse } = useQuery({
+    queryKey: ["projects", currentPage, itemsPerPage, searchTerm, sortBy],
+    queryFn: fetchProjectsChunk,
     enabled: !!userData,
   });
+
+  const projects = projectResponse?.allProject || [];
+  const paginationMeta = projectResponse?.pagination || {
+    totalProjects: 0,
+    ownedCount: 0,
+    sharedCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: itemsPerPage,
+  };
+
+  const totalItems = paginationMeta.totalProjects;
+  const totalPages = Math.max(1, paginationMeta.totalPages);
 
   // create project
   const handleCreateProject = () => {
@@ -82,12 +111,8 @@ const Home = () => {
     mutationFn: (projectName) =>
       axiosInstance.post("/project/create", { projectName }),
 
-    onSuccess: (res) => {
-      queryClient.setQueryData(["projects"], (old = []) => [
-        ...old,
-        res.data.data,
-      ]);
-
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       setCreatePopup(false);
       setProjectName("");
       showSuccess("Project created successfully");
@@ -106,14 +131,8 @@ const Home = () => {
         newProjectName,
       }),
 
-    onSuccess: (_, variables) => {
-      queryClient.setQueryData(["projects"], (oldData) =>
-        oldData?.map((p) =>
-          p._id === variables.projectId
-            ? { ...p, projectName: variables.newProjectName }
-            : p,
-        ),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       setRenamePopup({ open: false, projectId: null, projectName: "" });
       showSuccess("Project renamed successfully");
     },
@@ -128,69 +147,30 @@ const Home = () => {
     mutationFn: (projectId) =>
       axiosInstance.delete(`/project/delete/${projectId}`),
 
-    onSuccess: (_, projectId) => {
-      // Update cache instantly (no refetch)
-      queryClient.setQueryData(["projects"], (oldData) =>
-        oldData?.filter((p) => p._id !== projectId),
-      );
-
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       showSuccess("Project deleted successfully");
     },
   });
-
-  // filter and sort projects
-  const filteredProjects = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-
-    let list = projects
-      .filter((p) => p?.projectName)
-      .filter((p) => p.projectName.toLowerCase().includes(term));
-
-    return list.sort((a, b) => {
-      if (sortBy === "name-asc") {
-        return a.projectName.localeCompare(b.projectName);
-      }
-      if (sortBy === "name-desc") {
-        return b.projectName.localeCompare(a.projectName);
-      }
-      if (sortBy === "date-newest") {
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-      }
-      if (sortBy === "date-oldest") {
-        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-      }
-      if (sortBy === "members-desc") {
-        const countA = a.memberCount ?? a.users?.length ?? 0;
-        const countB = b.memberCount ?? b.users?.length ?? 0;
-        return countB - countA;
-      }
-      if (sortBy === "members-asc") {
-        const countA = a.memberCount ?? a.users?.length ?? 0;
-        const countB = b.memberCount ?? b.users?.length ?? 0;
-        return countA - countB;
-      }
-      return 0;
-    });
-  }, [projects, searchTerm, sortBy]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="h-[100dvh] bg-gray-950 text-white px-3 sm:px-6 py-4 sm:py-6 relative overflow-hidden select-none flex flex-col"
+      className="min-h-[100dvh] md:h-[100dvh] bg-gray-950 text-white px-3 sm:px-6 py-4 sm:py-6 relative overflow-y-auto md:overflow-hidden select-none flex flex-col"
     >
       {/* background Blobs */}
       <BackgroundBlobs />
 
-      <div className="w-full max-w-[92vw] 2xl:max-w-[88vw] mx-auto flex flex-col h-full relative z-10">
+      <div className="w-full max-w-[96vw] md:max-w-[94vw] lg:max-w-[92vw] 2xl:max-w-[88vw] mx-auto flex flex-col h-full relative z-10">
         {/* header */}
         <Header setCreatePopup={setCreatePopup} setAvatarPopup={setAvatarPopup} />
 
         {/* 2-Column Content Layout */}
-        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 relative z-20">
+        <div className="flex flex-col md:flex-row gap-4 lg:gap-6 flex-1 min-h-0 relative z-20">
           {/* Left Sidebar: Workspace Statistics */}
-          <StatsSidebar projects={projects} />
+          <StatsSidebar projects={projects} pagination={paginationMeta} />
 
           {/* Right Panel: Search, Sort & Project List */}
           <main className="flex-1 flex flex-col min-w-0 h-full relative">
@@ -207,9 +187,15 @@ const Home = () => {
             {/* ProjectList */}
             <div className="flex-1 min-h-0 relative">
               <ProjectList
-                filteredProjects={filteredProjects}
+                filteredProjects={projects}
                 openDeletePopup={setDeletePopup}
                 openRenamePopup={setRenamePopup}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
               />
             </div>
           </main>

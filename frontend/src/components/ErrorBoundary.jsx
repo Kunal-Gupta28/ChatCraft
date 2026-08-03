@@ -1,10 +1,15 @@
 import React from "react";
-import { AlertTriangle, RotateCcw, Home } from "lucide-react";
+import { AlertCircle, RotateCcw, Home, Copy, Check } from "lucide-react";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      copied: false,
+    };
   }
 
   static getDerivedStateFromError(error) {
@@ -13,13 +18,23 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();
+    } else {
+      window.location.reload();
     }
+  };
+
+  handleCopyError = () => {
+    const errorText = `ChatCraft Error:\n${this.state.error?.message}\n\nStack:\n${this.state.error?.stack}`;
+    navigator.clipboard.writeText(errorText);
+    this.setState({ copied: true });
+    setTimeout(() => this.setState({ copied: false }), 2000);
   };
 
   render() {
@@ -29,47 +44,81 @@ class ErrorBoundary extends React.Component {
       }
 
       return (
-        <div className="min-h-screen bg-[#080b11] text-white flex items-center justify-center p-6 select-none relative overflow-hidden">
-          {/* Ambient Background Flares */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
-
-          <div className="bg-[#0d121f]/90 border border-red-500/20 p-8 sm:p-10 rounded-3xl shadow-2xl backdrop-blur-2xl max-w-md w-full text-center relative z-10">
-            {/* Warning Icon Badge */}
-            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto mb-6 shadow-lg shadow-red-500/10">
-              <AlertTriangle size={32} />
+        <div className="min-h-[100dvh] bg-[#07090e] text-slate-100 flex items-center justify-center p-4 sm:p-6 select-none font-sans">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800/90 bg-[#0c0f17] p-6 shadow-2xl backdrop-blur-xl">
+            {/* Minimal Header */}
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-rose-500" />
+                <span className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
+                  Application Error
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500">
+                React Boundary
+              </span>
             </div>
 
-            <h2 className="text-2xl font-extrabold text-white tracking-tight mb-2">
-              Something Went Wrong
-            </h2>
+            {/* Title & Description */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <AlertCircle size={18} className="text-rose-400 shrink-0" />
+                <h3 className="text-base font-semibold text-white tracking-tight">
+                  Something went wrong
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed pl-7">
+                An unhandled error occurred in this view. You can reload the page or return to the dashboard.
+              </p>
+            </div>
 
-            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
-              An unexpected application error occurred in this view. Don't worry, your work is safe.
-            </p>
-
+            {/* Error Message Box */}
             {this.state.error?.message && (
-              <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-xl text-left font-mono text-xs text-red-300 mb-6 overflow-x-auto max-h-32">
-                <span className="text-slate-500 font-bold block mb-1">Error Details:</span>
-                {this.state.error.message}
+              <div className="mb-5 rounded-xl border border-slate-800/80 bg-[#06080f] p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-mono font-medium text-slate-500 uppercase">
+                    Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={this.handleCopyError}
+                    className="flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-white transition cursor-pointer"
+                  >
+                    {this.state.copied ? (
+                      <>
+                        <Check size={11} className="text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={11} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="font-mono text-xs text-rose-300/90 break-words leading-normal max-h-28 overflow-y-auto selection:bg-rose-900/40">
+                  {this.state.error.message}
+                </p>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Actions */}
+            <div className="flex items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                className="flex-1 py-2 px-3.5 rounded-lg bg-white text-black font-medium text-xs hover:bg-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
               >
-                <RotateCcw size={15} />
+                <RotateCcw size={13} />
                 <span>Try Again</span>
               </button>
 
               <a
                 href="/dashboard"
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                className="flex-1 py-2 px-3.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-white font-medium text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
               >
-                <Home size={15} />
+                <Home size={13} />
                 <span>Dashboard</span>
               </a>
             </div>

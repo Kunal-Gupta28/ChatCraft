@@ -48,6 +48,8 @@ const Collaborators = ({ setShowUsers }) => {
 
   // fetchAllUsers
   const fetchAllUsers = async () => {
+    if (!isOwner) return;
+
     try {
       const res = await axiosInstance.get("/all");
       setAllUsers(res.data.allUsers);
@@ -74,7 +76,7 @@ const Collaborators = ({ setShowUsers }) => {
 
   // add collaborator
   const addCollaborator = useCallback(async () => {
-    if (!selectedUsers.length) return;
+    if (!isOwner || !selectedUsers.length) return;
 
     try {
       const res = await axiosInstance.put("/project/add-user", {
@@ -94,11 +96,13 @@ const Collaborators = ({ setShowUsers }) => {
     } catch (error) {
       console.error(error);
     }
-  }, [selectedUsers, project?._id, setProject, resetModalState]);
+  }, [isOwner, selectedUsers, project?._id, setProject, resetModalState]);
 
   // remove collaborator
   const removeCollaborator = useCallback(
     async (userId) => {
+      if (!isOwner) return;
+
       try {
         const res = await axiosInstance.put("/project/remove-user", {
           projectId: project._id,
@@ -117,7 +121,7 @@ const Collaborators = ({ setShowUsers }) => {
         console.error(error);
       }
     },
-    [project?._id, setProject, confirmRemove.username],
+    [isOwner, project?._id, setProject, confirmRemove.username],
   );
 
   const filteredProjectUsers = useMemo(
@@ -160,15 +164,19 @@ const Collaborators = ({ setShowUsers }) => {
         title="Project Members"
         leftIcon={<ArrowLeft size={18} />}
         onLeftClick={() => setShowUsers(false)}
-        rightActions={[
-          {
-            icon: <UserPlus size={15} />,
-            label: "Add",
-            onClick: fetchAllUsers,
-            variant: "primary",
-            title: "Add New Collaborators",
-          },
-        ]}
+        rightActions={
+          isOwner
+            ? [
+                {
+                  icon: <UserPlus size={15} />,
+                  label: "Add",
+                  onClick: fetchAllUsers,
+                  variant: "primary",
+                  title: "Add New Collaborators",
+                },
+              ]
+            : []
+        }
       />
 
       <div className="p-3 border-b border-slate-800/80 bg-slate-950/40">

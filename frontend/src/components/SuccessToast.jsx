@@ -1,4 +1,5 @@
 import { memo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle } from "lucide-react";
 
@@ -18,12 +19,14 @@ const SuccessToast = ({ message, clearToast }) => {
 
     const timer = setTimeout(() => {
       clearToast();
-    }, 2500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [message, clearToast]);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {message && (
         <motion.div
@@ -32,13 +35,14 @@ const SuccessToast = ({ message, clearToast }) => {
           animate="animate"
           exit="exit"
           transition={transition}
-          className="fixed bottom-6 right-6 bg-green-600/90 backdrop-blur-md text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50"
+          className="fixed bottom-6 right-6 bg-[#10b981] text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 z-[9999] border border-emerald-400/30"
         >
-          <CheckCircle size={20} className="shrink-0" />
-          <span className="text-sm font-medium">{message}</span>
+          <CheckCircle size={20} className="shrink-0 text-white" />
+          <span className="text-sm font-semibold">{message}</span>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

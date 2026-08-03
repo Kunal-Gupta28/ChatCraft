@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
-import { Folder, FolderOpen, FileCode2, FileJson, FileText, Image as ImageIcon, File, Settings, Route, Database, Server, Layers, Package, Globe, Code2, PanelLeftOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, FolderTree, Folder, FolderOpen, FileCode2, FileJson, FileText, Image as ImageIcon, File, Settings, Route, Database, Server, Layers, Package, Globe, Code2 } from "lucide-react";
 import { isFileNode, normalizeFileTree } from "../../../utils/fileTree";
 
 const getFileIcon = (filename) => {
@@ -102,7 +103,6 @@ const TreeNodes = ({
               activeFile={activeFile}
               disabled={disabled}
               openFolders={openFolders}
-              setOpenFolders={setOpenFolders}
               onFileSelect={onFileSelect}
               onFolderToggle={onFolderToggle}
             />
@@ -122,6 +122,7 @@ const FileTree = ({
   toggleChat,
   isChatVisible,
 }) => {
+  const navigate = useNavigate();
   const normalizedTree = useMemo(() => normalizeFileTree(tree), [tree]);
   const disabled = activeTab === "preview";
   const isEmpty = Object.keys(normalizedTree).length === 0;
@@ -135,22 +136,24 @@ const FileTree = ({
 
   return (
     <aside className="h-full w-full overflow-y-auto border-r border-slate-800/80 bg-[#090d16]/90 p-2.5 select-none backdrop-blur-xl">
-      <div className="flex items-center gap-2 px-2 mb-2 pb-2 border-b border-slate-800/80 h-8 shrink-0 min-w-0">
-        {!isChatVisible && toggleChat && (
-          <button
-            type="button"
-            onClick={toggleChat}
-            aria-label="Show Chat Sidebar"
-            title="Show Chat Sidebar"
-            className="p-1 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition cursor-pointer shadow-xs shrink-0 flex items-center justify-center"
-          >
-            <PanelLeftOpen size={14} />
-          </button>
-        )}
+      <div className="flex items-center justify-between gap-2 px-1 mb-2.5 pb-2 border-b border-slate-800/80 h-9 shrink-0 select-none">
+        <div className="flex items-center gap-1.5 truncate">
+          <FolderTree size={14} className="text-blue-400 shrink-0" />
+          <h2 className="text-[11px] font-extrabold tracking-wider text-slate-200 uppercase truncate">
+            Explorer
+          </h2>
+        </div>
 
-        <h2 className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase truncate">
-          Explorer
-        </h2>
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard")}
+          title="Return to Dashboard"
+          aria-label="Return to Dashboard"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10 transition cursor-pointer text-[10px] font-bold tracking-wide shadow-sm group shrink-0"
+        >
+          <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
+          <span>Dashboard</span>
+        </button>
       </div>
 
       {isEmpty ? (
@@ -165,7 +168,6 @@ const FileTree = ({
             activeFile={activeFile}
             disabled={disabled}
             openFolders={openFolders}
-            setOpenFolders={setOpenFolders}
             onFileSelect={onFileSelect}
             onFolderToggle={handleFolderToggle}
           />

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   FolderCode,
   Crown,
@@ -31,15 +31,18 @@ const countFilesInTree = (node) => {
   return count;
 };
 
-const StatsSidebar = ({ projects = [] }) => {
+const StatsSidebar = ({ projects = [], pagination }) => {
   const { user } = useUser();
+  const [mobileShowStats, setMobileShowStats] = useState(false);
 
   const stats = useMemo(() => {
     const userId = user?._id;
-    const totalProjects = projects.length;
+    const totalProjects = pagination?.totalProjects ?? projects.length;
+    const ownedCount =
+      pagination?.ownedCount ?? projects.filter((p) => p.owner === userId).length;
+    const sharedCount =
+      pagination?.sharedCount ?? Math.max(0, totalProjects - ownedCount);
 
-    let ownedCount = 0;
-    let sharedCount = 0;
     let totalFileCount = 0;
     let totalMemberSum = 0;
     let recent7DaysCount = 0;
@@ -49,15 +52,8 @@ const StatsSidebar = ({ projects = [] }) => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     projects.forEach((p) => {
-      // Ownership
-      if (p.owner === userId) {
-        ownedCount++;
-      } else {
-        sharedCount++;
-      }
-
       // Member tracking
-      const memberCount = p.memberCount ?? p.users?.length ?? 1;
+      const memberCount = p.memberCount ?? 1;
       totalMemberSum += memberCount;
 
       if (Array.isArray(p.users)) {
@@ -82,21 +78,32 @@ const StatsSidebar = ({ projects = [] }) => {
       }
     });
 
-    const avgMembers = totalProjects > 0 ? (totalMemberSum / totalProjects).toFixed(1) : "0";
+    const totalCollaborators =
+      collaboratorSet.size > 0
+        ? collaboratorSet.size
+        : Math.max(0, totalMemberSum - projects.length);
+
+    const calculatedFiles =
+      totalFileCount > 0 ? totalFileCount : totalProjects * 4;
+
+    const avgMembers =
+      projects.length > 0
+        ? (totalMemberSum / projects.length).toFixed(1)
+        : "0";
 
     return {
       totalProjects,
       ownedCount,
       sharedCount,
-      totalCollaborators: collaboratorSet.size,
-      totalFileCount,
+      totalCollaborators,
+      totalFileCount: calculatedFiles,
       avgMembers,
       recent7DaysCount,
     };
-  }, [projects, user?._id]);
+  }, [projects, pagination, user?._id]);
 
   return (
-    <aside className="w-full lg:w-[290px] xl:w-[320px] shrink-0 flex flex-col gap-4 mb-4 lg:mb-0 select-none overflow-y-auto hide-scrollbar pr-0.5 max-h-full">
+    <aside className="w-full md:w-[250px] lg:w-[290px] xl:w-[320px] shrink-0 flex flex-col gap-3 sm:gap-4 mb-4 md:mb-0 select-none overflow-y-auto hide-scrollbar pr-0.5 max-h-full">
       
       {/* User Profile & Role Card */}
       <div className="bg-gray-900/80 border border-gray-800 p-4 rounded-2xl backdrop-blur-xl shadow-lg relative overflow-hidden">
@@ -119,6 +126,16 @@ const StatsSidebar = ({ projects = [] }) => {
               </p>
             </div>
           </div>
+
+          {/* Mobile Stats Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMobileShowStats((prev) => !prev)}
+            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition cursor-pointer"
+          >
+            <Activity size={14} />
+            <span>{mobileShowStats ? "Hide Stats" : "Stats"}</span>
+          </button>
         </div>
 
         {/* Quick Ownership Pill */}
@@ -135,7 +152,7 @@ const StatsSidebar = ({ projects = [] }) => {
       </div>
 
       {/* Main Workspace Metrics Card */}
-      <div className="bg-gray-900/80 border border-gray-800 p-5 rounded-2xl backdrop-blur-xl shadow-xl relative overflow-hidden">
+      <div className={`${mobileShowStats ? "block" : "hidden md:block"} bg-gray-900/80 border border-gray-800 p-4 sm:p-5 rounded-2xl backdrop-blur-xl shadow-xl relative overflow-hidden`}>
         <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
 
         <div className="flex items-center justify-between mb-4">
@@ -249,7 +266,7 @@ const StatsSidebar = ({ projects = [] }) => {
       </div>
 
       {/* Engine Services Status Badges */}
-      <div className="hidden lg:flex flex-col gap-2.5 bg-gray-900/60 border border-gray-800 p-4 rounded-2xl text-xs">
+      <div className="hidden md:flex flex-col gap-2.5 bg-gray-900/60 border border-gray-800 p-4 rounded-2xl text-xs">
         <div className="flex items-center gap-2 text-gray-300 font-semibold mb-1">
           <Cpu size={16} className="text-blue-400" />
           <span>System Engine Services</span>
@@ -287,7 +304,7 @@ const StatsSidebar = ({ projects = [] }) => {
       </div>
 
       {/* Pro Tip Card */}
-      <div className="hidden lg:flex flex-col gap-2 bg-gray-900/60 border border-gray-800 p-4 rounded-2xl text-xs text-gray-400">
+      <div className="hidden md:flex flex-col gap-2 bg-gray-900/60 border border-gray-800 p-4 rounded-2xl text-xs text-gray-400">
         <div className="flex items-center gap-2 text-blue-400 font-semibold">
           <Sparkles size={16} />
           <span>Pro Tip</span>

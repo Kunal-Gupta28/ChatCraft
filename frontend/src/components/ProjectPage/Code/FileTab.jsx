@@ -1,7 +1,9 @@
 import { memo } from "react";
 import { X, FileCode } from "lucide-react";
 
-const FileTab = ({ fileName, isActive, onClick, onClose, disabled }) => {
+const PRESENCE_COLORS = ["#22d3ee", "#a78bfa", "#f59e0b", "#34d399", "#fb7185"];
+
+const FileTab = ({ fileName, isActive, onClick, onClose, disabled, collaborators = [] }) => {
   const shortName = fileName.split("/").pop();
 
   return (
@@ -21,6 +23,21 @@ const FileTab = ({ fileName, isActive, onClick, onClose, disabled }) => {
       <span className="truncate max-w-[130px]">
         {shortName}
       </span>
+
+      {collaborators.length > 0 && (
+        <span
+          className="flex -space-x-1"
+          title={collaborators.map((presence) => `${presence.username} is editing`).join(", ")}
+        >
+          {collaborators.slice(0, 3).map((presence) => (
+            <span
+              key={presence.connectionId}
+              className="h-2 w-2 rounded-full border border-slate-900"
+              style={{ backgroundColor: PRESENCE_COLORS[presence.colorIndex % PRESENCE_COLORS.length] }}
+            />
+          ))}
+        </span>
+      )}
 
       <button
         type="button"

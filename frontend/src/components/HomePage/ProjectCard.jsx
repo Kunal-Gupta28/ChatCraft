@@ -77,7 +77,7 @@ const ProjectCard = ({ project, isOwner, onOpen, onDelete, onRename }) => {
     <motion.div
       variants={itemVariants}
       onClick={handleOpen}
-      className="bg-gray-800/40 h-[160px] backdrop-blur-xl p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-1.5 hover:shadow-lg hover:shadow-blue-500/10 group relative"
+      className="bg-gray-800/40 min-h-[150px] md:h-[160px] backdrop-blur-xl p-4 sm:p-5 lg:p-6 rounded-2xl cursor-pointer border border-gray-700/60 hover:border-blue-500/60 transition-all hover:-translate-y-1.5 hover:shadow-lg hover:shadow-blue-500/10 group relative"
     >
       {/* top row */}
       <div className="flex items-center justify-between mb-4 gap-3">

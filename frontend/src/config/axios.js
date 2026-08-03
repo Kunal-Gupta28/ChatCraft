@@ -23,11 +23,21 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = error.config?.url || "";
+    const isAuthRequest =
+      requestUrl.includes("/login") ||
+      requestUrl.includes("/register") ||
+      requestUrl.includes("/forgot") ||
+      requestUrl.includes("/logout") ||
+      requestUrl.includes("-otp");
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      window.location.href = "/auth/login";
+      if (!window.location.pathname.startsWith("/auth")) {
+        window.location.href = "/auth/login";
+      }
     }
 
     return Promise.reject(error);
