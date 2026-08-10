@@ -26,14 +26,19 @@ const normalizeNode = (node) => {
   const normalized = {};
 
   for (const [rawName, value] of Object.entries(source)) {
-    if (!isObject(value)) continue;
-
     const pathParts = rawName.split("/").filter(Boolean);
     if (pathParts.length === 0) continue;
 
-    const normalizedValue = isFileNode(value)
-      ? { file: { ...value.file } }
-      : normalizeNode(value);
+    let normalizedValue;
+    if (typeof value === "string") {
+      normalizedValue = { file: { contents: value } };
+    } else if (isFileNode(value)) {
+      normalizedValue = { file: { ...value.file } };
+    } else if (isObject(value)) {
+      normalizedValue = normalizeNode(value);
+    } else {
+      continue;
+    }
 
     insertAtPath(normalized, pathParts, normalizedValue);
   }
@@ -134,4 +139,37 @@ export const getFileTreeDiffs = (currentTree, suggestionTree) => {
       kind: currentFiles[path] === undefined ? "added" : "modified",
     }))
     .sort((a, b) => a.path.localeCompare(b.path));
+};
+
+export const addFileToTree = (fileTree, filePath, content = "") => {
+  const flat = flattenFileTree(fileTree);
+  flat[filePath] = content;
+  return normalizeFileTree(flat);
+};
+
+export const renamePathInTree = (fileTree, oldPath, newPath) => {
+  const flat = flattenFileTree(fileTree);
+  const updated = {};
+  for (const [k, v] of Object.entries(flat)) {
+    if (k === oldPath) {
+      updated[newPath] = v;
+    } else if (k.startsWith(oldPath + "/")) {
+      const remaining = k.slice(oldPath.length);
+      updated[newPath + remaining] = v;
+    } else {
+      updated[k] = v;
+    }
+  }
+  return normalizeFileTree(updated);
+};
+
+export const deletePathFromTree = (fileTree, targetPath) => {
+  const flat = flattenFileTree(fileTree);
+  const updated = {};
+  for (const [k, v] of Object.entries(flat)) {
+    if (k !== targetPath && !k.startsWith(targetPath + "/")) {
+      updated[k] = v;
+    }
+  }
+  return normalizeFileTree(updated);
 };

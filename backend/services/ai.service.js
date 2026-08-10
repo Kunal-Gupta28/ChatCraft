@@ -23,55 +23,8 @@ const cleanJsonText = (rawText) => {
     .trim();
 };
 
-/**
- * Smart mock AI response when API quota is exhausted or USE_MOCK_AI is active
- */
-const getMockResponse = (prompt = "") => {
-  const p = prompt.toLowerCase();
-
-  if (p.includes("express") || p.includes("server") || p.includes("backend") || p.includes("api")) {
-    return {
-      text: "Created Express.js server with basic routes and package setup.",
-      fileTree: {
-        "package.json": {
-          file: {
-            contents: JSON.stringify(
-              {
-                name: "express-app",
-                version: "1.0.0",
-                main: "server.js",
-                scripts: { start: "node server.js" },
-                dependencies: { express: "^4.18.2" },
-              },
-              null,
-              2
-            ),
-          },
-        },
-        "server.js": {
-          file: {
-            contents: `const express = require('express');\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\napp.use(express.json());\n\napp.get('/', (req, res) => {\n  res.json({ message: 'Hello from ChatCraft Express Server!' });\n});\n\napp.listen(PORT, '0.0.0.0', () => {\n  console.log(\`Server is running on port \${PORT}\`);\n});`,
-          },
-        },
-      },
-      buildCommand: { mainItem: "npm", commands: ["install"] },
-      startCommand: { mainItem: "npm", commands: ["start"] },
-    };
-  }
-
-  return {
-    text: `Mock AI response for: "${prompt}". Ready to generate code and help build your application!`,
-  };
-};
-
-// get result from gemini with automatic model fallback & mock data fallback
+// get result from gemini with automatic model fallback
 const generateResult = async (prompt, currentFileTree) => {
-  // If USE_MOCK_AI is enabled in .env, return instant mock response
-  if (process.env.USE_MOCK_AI === "true") {
-    console.log("[AI SERVICE] Returning instant Mock AI response");
-    return getMockResponse(prompt);
-  }
-
   const modelNames = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
@@ -79,6 +32,8 @@ const generateResult = async (prompt, currentFileTree) => {
     "gemini-1.5-pro",
     "gemini-1.5-flash-latest",
   ];
+
+  let lastError = null;
 
   for (const modelName of modelNames) {
     try {
@@ -131,19 +86,14 @@ Rules:
       return JSON.parse(cleanedText);
     } catch (error) {
       console.error(`Gemini model ${modelName} error:`, error.message);
+      lastError = error;
     }
   }
 
-  // Fallback to smart mock response if all API models fail
-  console.log("[AI SERVICE] All Gemini API models failed/rate-limited. Returning fallback mock response.");
-  return getMockResponse(prompt);
+  throw new Error(`Gemini API Error: ${lastError?.message || "Failed to generate AI response"}`);
 };
 
 const generateAudioResult = async ({ audioBase64, mimeType, currentFileTree }) => {
-  if (process.env.USE_MOCK_AI === "true") {
-    return getMockResponse("voice command");
-  }
-
   const modelNames = [
     "gemini-2.5-flash",
     "gemini-2.0-flash",
@@ -151,6 +101,8 @@ const generateAudioResult = async ({ audioBase64, mimeType, currentFileTree }) =
     "gemini-1.5-pro",
     "gemini-1.5-flash-latest",
   ];
+
+  let lastError = null;
 
   for (const modelName of modelNames) {
     try {
@@ -189,10 +141,11 @@ Rules:
       return JSON.parse(cleanedText);
     } catch (error) {
       console.error(`Gemini audio model ${modelName} error:`, error.message);
+      lastError = error;
     }
   }
 
-  return getMockResponse("voice command");
+  throw new Error(`Gemini Audio API Error: ${lastError?.message || "Failed to process audio command"}`);
 };
 
 module.exports = { generateResult, generateAudioResult };

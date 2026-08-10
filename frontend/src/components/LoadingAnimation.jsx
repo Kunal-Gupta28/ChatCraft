@@ -1,28 +1,27 @@
-import { motion } from "framer-motion";
+import { Code2 } from "lucide-react";
 
 export default function LoadingAnimation() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/90 z-[9999]">
-      <div className="flex items-center gap-2 bg-neutral-800 px-4 py-2 rounded-2xl shadow-lg border border-neutral-700">
-        <Dot delay={0} />
-        <Dot delay={0.2} />
-        <Dot delay={0.4} />
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#06080e]/95 backdrop-blur-md z-[9999] select-none font-sans overflow-hidden">
+      <div className="flex flex-col items-center gap-3 bg-[#090d16]/80 border border-slate-800/80 px-6 py-5 rounded-2xl shadow-xl backdrop-blur-lg animate-fadeIn">
+        {/* Minimal Pulsing Logo Mark */}
+        <div className="relative flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-sm animate-pulse">
+            <Code2 size={20} className="text-blue-400" />
+          </div>
+        </div>
+
+        {/* Minimal Text Label */}
+        <div className="flex items-center gap-2 font-mono text-xs text-slate-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping shrink-0" />
+          <span>Loading...</span>
+        </div>
+
+        {/* Sleek Minimal Progress Line */}
+        <div className="w-28 h-0.5 bg-slate-800 rounded-full overflow-hidden relative mt-1">
+          <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full animate-pulse w-full" />
+        </div>
       </div>
     </div>
-  );
-}
-
-function Dot({ delay }) {
-  return (
-    <motion.div
-      className="w-3 h-3 bg-white rounded-full"
-      animate={{ y: [0, -6, 0], opacity: [0.3, 1, 0.3] }}
-      transition={{
-        duration: 0.6,
-        repeat: Infinity,
-        ease: "easeInOut",
-        delay,
-      }}
-    />
   );
 }

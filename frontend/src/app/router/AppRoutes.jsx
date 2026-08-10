@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
-// import pages
+// Direct static imports for instant marketing & auth page rendering (no black screen or suspense flickering)
 import Landingpage from "../../pages/Landing";
 import FeaturesPage from "../../pages/FeaturesPage";
 import HowItWorksPage from "../../pages/HowItWorksPage";
@@ -12,23 +12,20 @@ import SignupPage from "../../pages/auth/SignupPage";
 import ForgotPasswordPage from "../../pages/auth/ForgotPasswordPage";
 import NotFound from "../../pages/NotFound";
 
-// lazy import
+// Lazy-loaded application workspace routes
 const Home = lazy(() => import("../../pages/Home"));
 const Project = lazy(() => import("../../pages/Project"));
 
-// loader & error boundary
-import Loader from "../../components/PageLoader";
+// Loaders & Error Boundary
 import ComponentLoader from "../../components/LoadingAnimation";
 import ErrorBoundary from "../../components/ErrorBoundary";
-
-// layout 
 import ProtectedLayout from "../layouts/ProtectedLayout";
 import ProjectLayout from "../layouts/ProjectLayout";
 
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Landing / Marketing Routes */}
+      {/* Instant Marketing & Public Routes */}
       <Route
         path="/"
         element={
@@ -70,7 +67,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Auth Routes */}
+      {/* Instant Authentication Routes */}
       <Route
         path="/auth/login"
         element={
@@ -96,44 +93,35 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Protected Application Routes */}
+      {/* Protected Application Workspace Routes */}
       <Route element={<ProtectedLayout />}>
         <Route
           path="/dashboard"
           element={
             <ErrorBoundary>
-              <Suspense fallback={<Loader />}>
+              <Suspense fallback={<ComponentLoader />}>
                 <Home />
               </Suspense>
             </ErrorBoundary>
           }
         />
-
-        <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-
-        <Route
-          path="/project/:projectId"
-          element={
-            <ErrorBoundary>
-              <Suspense fallback={<ComponentLoader />}>
-                <ProjectLayout>
+        <Route element={<ProjectLayout />}>
+          <Route
+            path="/project/:projectId"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<ComponentLoader />}>
                   <Project />
-                </ProjectLayout>
-              </Suspense>
-            </ErrorBoundary>
-          }
-        />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+        </Route>
       </Route>
 
-      {/* Catch-all Not Found Route */}
-      <Route
-        path="*"
-        element={
-          <ErrorBoundary>
-            <NotFound />
-          </ErrorBoundary>
-        }
-      />
+      {/* Fallback & Redirects */}
+      <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

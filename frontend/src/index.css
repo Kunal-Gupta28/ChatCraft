@@ -8,10 +8,47 @@
 
 .scrollbar-hide,
 .hide-scrollbar {
-  /* IE and Edge */
   -ms-overflow-style: none;
-  /* Firefox */
   scrollbar-width: none;
+}
+
+/* Modern Ultra-Sleek Dark Scrollbar for Brave / Chrome / WebKit / Firefox */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
+}
+
+/* Custom Chat Scrollbar Utility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(9, 13, 22, 0.5);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.7);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.8);
 }
 
 .prose pre {
@@ -102,54 +139,8 @@ input[type="reset"],
   }
 }
 
-/* chat & editor default (mobile) */
-.chatBox_size,
-.codeEditor_size {
-  width: 100%;
-}
-
-/* md — horizontal split starts */
-@media (min-width: 768px) {
-  .chatBox_size {
-    width: 40%;
-  }
-  .codeEditor_size {
-    width: 60%;
-  }
-}
-
-/* lg (1024px+) */
+/* lg (1024px desktop) */
 @media (min-width: 1024px) {
-  .project-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 30%;
-  }
-
-  .codeEditor_size {
-    width: 70%;
-  }
-}
-
-/* xl (1280px+) */
-@media (min-width: 1280px) {
-  .project-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .chatBox_size {
-    width: 30%;
-  }
-
-  .codeEditor_size {
-    width: 70%;
-  }
-}
-
-/* 2xl (1536px+) */
-@media (min-width: 1536px) {
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

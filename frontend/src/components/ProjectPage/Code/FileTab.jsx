@@ -3,26 +3,30 @@ import { X, FileCode } from "lucide-react";
 
 const PRESENCE_COLORS = ["#22d3ee", "#a78bfa", "#f59e0b", "#34d399", "#fb7185"];
 
-const FileTab = ({ fileName, isActive, onClick, onClose, disabled, collaborators = [] }) => {
+const FileTab = ({ fileName, isActive, onClick, onClose, disabled, collaborators = [], isDirty = false }) => {
   const shortName = fileName.split("/").pop();
 
   return (
     <div
       onClick={!disabled ? () => onClick(fileName) : undefined}
-      className={`flex px-3 py-1.5 rounded-lg items-center gap-2 select-none text-xs font-medium transition-all shrink-0
+      className={`flex px-3 py-1.5 rounded-lg items-center gap-2 select-none text-xs font-medium transition-all shrink-0 font-mono
         ${
           isActive
-            ? "bg-gray-800 text-white border border-gray-700 shadow-sm"
-            : "bg-gray-900/60 text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 cursor-pointer border border-transparent"
+            ? "bg-[#111625] text-white border border-blue-500/40 shadow-sm"
+            : "bg-[#090d16]/80 text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 cursor-pointer border border-transparent"
         }
         ${disabled && "pointer-events-none opacity-40"}
       `}
     >
-      <FileCode size={13} className={isActive ? "text-blue-400" : "text-gray-500"} />
+      <FileCode size={13} className={isActive ? "text-blue-400" : "text-slate-500"} />
 
       <span className="truncate max-w-[130px]">
         {shortName}
       </span>
+
+      {isDirty && (
+        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 shadow-sm shadow-amber-400/50" title="Unsaved local draft changes" />
+      )}
 
       {collaborators.length > 0 && (
         <span
@@ -45,9 +49,9 @@ const FileTab = ({ fileName, isActive, onClick, onClose, disabled, collaborators
           e.stopPropagation();
           if (!disabled) onClose(fileName);
         }}
-        className="p-0.5 rounded hover:bg-gray-700/80 hover:text-red-400 transition"
+        className="p-0.5 rounded hover:bg-slate-700/80 hover:text-rose-400 transition cursor-pointer"
       >
-        <X size={12} className={disabled ? "text-gray-600" : "text-gray-400"} />
+        <X size={12} className={disabled ? "text-slate-600" : "text-slate-400"} />
       </button>
     </div>
   );

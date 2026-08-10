@@ -13,6 +13,7 @@ const CollaboratorsAddModal = ({
   searchQuery,
   setSearchQuery,
   projectUsers,
+  currentUserId,
 }) => {
   const handleClose = useCallback(() => {
     setShowModal(false);
@@ -30,10 +31,14 @@ const CollaboratorsAddModal = ({
     [projectUsers]
   );
 
+  const availableUsers = useMemo(() => {
+    return filteredAllUsers.filter((u) => String(u._id) !== String(currentUserId));
+  }, [filteredAllUsers, currentUserId]);
+
   const isDisabled = selectedUsers.length === 0;
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#090d16]/95 backdrop-blur-2xl select-none">
+    <div className="w-full h-full flex flex-col bg-[#090d16]/95 backdrop-blur-2xl select-none font-sans">
       {/* Header */}
       <Header
         title="Add Members"
@@ -47,15 +52,15 @@ const CollaboratorsAddModal = ({
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search users by username..."
+          placeholder="Search by username or email..."
         />
       </div>
 
       {/* User List */}
       <div className="flex-1 overflow-y-auto p-3 hide-scrollbar">
-        {filteredAllUsers.length > 0 ? (
+        {availableUsers.length > 0 ? (
           <ul className="space-y-1.5">
-            {filteredAllUsers.map((user) => {
+            {availableUsers.map((user) => {
               const isSelected = selectedIds.has(user._id);
               const alreadyAdded = projectUserIds.has(user._id);
 
@@ -91,24 +96,27 @@ const CollaboratorsAddModal = ({
                       <span className="text-slate-100 text-xs font-semibold capitalize">
                         {user.username}
                       </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {user.email || "No email available"}
+                      </span>
                       {alreadyAdded && (
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-amber-400/80 font-medium">
                           Already added to project
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Checkbox */}
+                  {/* Selection indicator */}
                   {!alreadyAdded && (
                     <div
-                      className={`w-5 h-5 rounded-lg flex items-center justify-center border transition ${
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
                         isSelected
-                          ? "bg-blue-600 border-blue-500 text-white shadow-sm"
+                          ? "bg-blue-600 border-blue-500 text-white"
                           : "border-slate-700 group-hover:border-slate-500"
                       }`}
                     >
-                      {isSelected && <Check size={13} />}
+                      {isSelected && <Check size={12} />}
                     </div>
                   )}
                 </li>
@@ -116,30 +124,26 @@ const CollaboratorsAddModal = ({
             })}
           </ul>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs">
-            <p>No users found matching query</p>
+          <div className="text-center py-12 text-slate-400">
+            <p className="text-xs text-slate-500">No users found matching your search</p>
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="p-3 border-t border-slate-800/80 bg-[#090d16]/95 backdrop-blur-md">
+      {/* Footer action button */}
+      <div className="p-3 border-t border-slate-800/80 bg-slate-950/60">
         <button
           type="button"
-          onClick={addCollaborator}
           disabled={isDisabled}
-          className={`w-full py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2 ${
-            isDisabled
-              ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50 border border-slate-800"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 active:scale-95 border border-blue-500/30"
-          }`}
+          onClick={addCollaborator}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
-          <UserPlus size={16} />
+          <UserPlus size={15} />
           <span>
-            Add Selected Members {selectedUsers.length > 0 && `(${selectedUsers.length})`}
+            Add Selected Members {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}
           </span>
         </button>
-      </footer>
+      </div>
     </div>
   );
 };

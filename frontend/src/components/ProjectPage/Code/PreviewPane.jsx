@@ -1,8 +1,16 @@
 import { memo, useState } from "react";
-import { ExternalLink, RefreshCw, Globe } from "lucide-react";
+import { ExternalLink, RefreshCw, Globe, Copy, Check } from "lucide-react";
 
 const PreviewPane = ({ iframeUrl }) => {
   const [key, setKey] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    if (!iframeUrl) return;
+    navigator.clipboard.writeText(iframeUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // if iframe Url is not present then show waiting for server...
   if (!iframeUrl)
@@ -19,15 +27,26 @@ const PreviewPane = ({ iframeUrl }) => {
   return (
     <div className="flex flex-col h-full w-full bg-[#090d16] select-none">
       {/* Top Address / Controls Bar */}
-      <div className="h-8 px-3 border-b border-slate-800/80 bg-[#0d1322] flex items-center justify-between gap-2 shrink-0">
+      <div className="h-9 px-3 border-b border-slate-800/80 bg-[#0d1322] flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Globe size={13} className="text-slate-400 shrink-0" />
-          <span className="text-[11px] font-mono text-slate-400 truncate max-w-md">
+          <Globe size={13} className="text-cyan-400 shrink-0" />
+          <span className="text-[11px] font-mono text-slate-300 truncate max-w-md bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
             {iframeUrl}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Copy Link Button */}
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            title="Copy Live Preview URL"
+            className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition cursor-pointer text-[10px] font-semibold"
+          >
+            {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+            <span>{copied ? "Copied!" : "Copy Link"}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             type="button"
@@ -38,19 +57,17 @@ const PreviewPane = ({ iframeUrl }) => {
             <RefreshCw size={13} />
           </button>
 
-          {/* Open in New Tab Button (for local / blob previews) */}
-          {iframeUrl && !iframeUrl.includes("webcontainer-api.io") && (
-            <a
-              href={iframeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open preview in new tab"
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-600/15 border border-blue-500/30 text-blue-400 hover:bg-blue-600/25 transition cursor-pointer text-[10px] font-semibold"
-            >
-              <span>Open in New Tab</span>
-              <ExternalLink size={11} />
-            </a>
-          )}
+          {/* Open in New Tab Button */}
+          <a
+            href={iframeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open preview in new tab"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white transition cursor-pointer text-[10px] font-semibold shadow-sm"
+          >
+            <span>Open Tab</span>
+            <ExternalLink size={11} />
+          </a>
         </div>
       </div>
 

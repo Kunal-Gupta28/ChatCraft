@@ -1,8 +1,8 @@
 import { memo, useMemo, useState } from "react";
-import { Check, FileCode2, FilePlus2, Loader2, X } from "lucide-react";
+import { Check, CheckCircle2, FileCode2, FilePlus2, Loader2, X } from "lucide-react";
 import { getFileTreeDiffs, mergeFileTrees } from "../../../utils/fileTree";
 
-const CodeDiffReview = ({ currentFileTree, suggestion, onApply, onClose }) => {
+const CodeDiffReview = ({ currentFileTree, suggestion, onApply, onClose, onCancel, isChatVisible }) => {
   const diffs = useMemo(
     () => getFileTreeDiffs(currentFileTree, suggestion?.fileTree),
     [currentFileTree, suggestion?.fileTree]
@@ -10,6 +10,14 @@ const CodeDiffReview = ({ currentFileTree, suggestion, onApply, onClose }) => {
   const [selectedPath, setSelectedPath] = useState(diffs[0]?.path || "");
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState("");
+
+  const handleCancelClick = () => {
+    if (typeof onCancel === "function") {
+      onCancel();
+    } else {
+      onClose();
+    }
+  };
 
   const selectedDiff = diffs.find((d) => d.path === selectedPath) || diffs[0];
 
@@ -65,28 +73,32 @@ const CodeDiffReview = ({ currentFileTree, suggestion, onApply, onClose }) => {
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2 py-1 mb-1">
             Changed Files
           </div>
-          {diffs.map((diff) => {
-            const active = (selectedDiff?.path || selectedPath) === diff.path;
-            return (
-              <button
-                key={diff.path}
-                type="button"
-                onClick={() => setSelectedPath(diff.path)}
-                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-mono transition-all cursor-pointer ${
-                  active
-                    ? "bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 font-semibold"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }`}
-              >
-                {diff.kind === "added" ? (
-                  <FilePlus2 size={13} className="shrink-0 text-emerald-400" />
-                ) : (
-                  <FileCode2 size={13} className="shrink-0 text-blue-400" />
-                )}
-                <span className="truncate flex-1">{diff.path}</span>
-              </button>
-            );
-          })}
+          {diffs.length > 0 ? (
+            diffs.map((diff) => {
+              const active = (selectedDiff?.path || selectedPath) === diff.path;
+              return (
+                <button
+                  key={diff.path}
+                  type="button"
+                  onClick={() => setSelectedPath(diff.path)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-mono transition-all cursor-pointer ${
+                    active
+                      ? "bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 font-semibold"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  {diff.kind === "added" ? (
+                    <FilePlus2 size={13} className="shrink-0 text-emerald-400" />
+                  ) : (
+                    <FileCode2 size={13} className="shrink-0 text-blue-400" />
+                  )}
+                  <span className="truncate flex-1">{diff.path}</span>
+                </button>
+              );
+            })
+          ) : (
+            <p className="px-2.5 py-2 text-[10px] text-slate-500 italic font-mono">0 files modified</p>
+          )}
         </div>
 
         {/* Diff Code View */}
@@ -126,27 +138,46 @@ const CodeDiffReview = ({ currentFileTree, suggestion, onApply, onClose }) => {
               </div>
             </>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs text-slate-500">
-              No changes to display.
+            <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10 animate-in zoom-in-95 duration-200">
+                <CheckCircle2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1">Changes Already Applied</h3>
+                <p className="text-xs text-slate-400 max-w-sm font-sans leading-relaxed">
+                  All suggested files in this recommendation have been applied to your workspace code.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-1 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white transition shadow-md cursor-pointer border border-slate-700/80 active:scale-95"
+              >
+                Close Review
+              </button>
             </div>
           )}
         </div>
       </div>
 
       {/* Footer Bar */}
-      <div className="flex items-center justify-between border-t border-slate-800/80 bg-[#090c14] px-4 py-2.5 shrink-0">
+      <div
+        className={`relative z-20 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 bg-[#090c14] px-4 py-3 shrink-0 transition-all duration-300 ${
+          isChatVisible ? "pr-4 lg:pr-[440px]" : "pr-4"
+        }`}
+      >
         {error ? (
           <p className="text-xs font-medium text-red-400">{error}</p>
         ) : (
-          <p className="text-xs text-slate-400">Review diff changes and apply to workspace code.</p>
+          <p className="text-xs text-slate-400 truncate max-w-full">Review diff changes and apply to workspace code.</p>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCancelClick}
             disabled={isApplying}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer disabled:opacity-40"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer disabled:opacity-40"
           >
             Cancel
           </button>

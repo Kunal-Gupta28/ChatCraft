@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import ActionButton from "./ActionButton";
@@ -5,30 +6,27 @@ import { containerVariants, itemVariants } from "../../data/AnimationData";
 
 const CTA = () => {
   return (
-    <section className="py-20 bg-[#080b11] text-center relative overflow-hidden select-none border-t border-slate-800/60">
+    <section className="py-16 bg-[#06080e] text-center relative overflow-hidden select-none border-t border-slate-800/60 font-sans">
       <motion.div
-        className="max-w-5xl mx-auto px-6 relative z-10"
+        className="max-w-4xl mx-auto px-6 relative z-10"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.4 }}
         variants={containerVariants}
       >
-        <div className="bg-gradient-to-br from-indigo-950/80 via-slate-900/90 to-purple-950/80 border border-indigo-500/30 rounded-3xl p-10 sm:p-16 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
-          {/* Ambient Glow */}
-          <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-
+        <div className="bg-[#090c15] border border-slate-800 rounded-2xl p-8 sm:p-12 shadow-2xl backdrop-blur-xl relative overflow-hidden text-center">
           {/* Heading */}
           <motion.h2
             variants={itemVariants}
-            className="text-3xl sm:text-5xl font-extrabold text-white mb-4 tracking-tight"
+            className="text-2xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight"
           >
             Ready to Revolutionize Your Coding Workflow?
           </motion.h2>
 
-          {/* Paragraph */}
+          {/* Subtitle */}
           <motion.p
             variants={itemVariants}
-            className="text-base sm:text-lg text-slate-300 mb-8 max-w-xl mx-auto"
+            className="text-xs sm:text-sm text-slate-400 mb-8 max-w-xl mx-auto leading-relaxed"
           >
             Experience the future of collaborative AI-assisted cloud development. Create your first project in seconds.
           </motion.p>
@@ -38,11 +36,11 @@ const CTA = () => {
             <ActionButton
               to="/auth/login"
               variant="primary"
-              className="text-base px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-xl shadow-blue-600/30 transition-all flex items-center gap-2 cursor-pointer border border-blue-400/30"
+              className="text-sm px-6 py-3 rounded-xl bg-slate-100 text-slate-950 font-bold hover:bg-white transition cursor-pointer flex items-center gap-2 shadow-lg"
             >
-              <Sparkles size={18} />
+              <Sparkles size={16} />
               <span>Get Started Free</span>
-              <ArrowRight size={18} />
+              <ArrowRight size={16} />
             </ActionButton>
           </motion.div>
         </div>
@@ -51,4 +49,4 @@ const CTA = () => {
   );
 };
 
-export default CTA;
+export default memo(CTA);

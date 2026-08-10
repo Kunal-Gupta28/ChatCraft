@@ -1,18 +1,26 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { itemVariants } from "../../../data/AnimationData";
+import { Quote } from "lucide-react";
 
 const TestimonialCard = ({ quote, author }) => {
   return (
     <motion.article
       variants={itemVariants}
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 300 }}
-      className="rounded-2xl bg-gray-800/70 p-6 border border-gray-700 hover:border-green-500 backdrop-blur-md"
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-xl bg-[#090c15] p-6 border border-slate-800 hover:border-slate-700 backdrop-blur-xl transition-all shadow-md flex flex-col justify-between"
     >
-      <p className="text-gray-300 italic mb-6 leading-relaxed">"{quote}"</p>
+      <div>
+        <Quote size={20} className="text-slate-600 mb-3" />
+        <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6 font-sans">
+          "{quote}"
+        </p>
+      </div>
 
-      <p className="font-semibold text-green-400">{author}</p>
+      <p className="font-mono text-xs font-semibold text-slate-400 border-t border-slate-800/80 pt-3">
+        — {author}
+      </p>
     </motion.article>
   );
 };

@@ -30,7 +30,7 @@ const TypingIndicator = ({ users }) => {
         : `${names[0]}, ${names[1]}, and ${users.length - 2} others are typing...`;
 
   return (
-    <div className="flex items-center gap-2 px-4 pt-2 text-[11px] text-slate-400" role="status" aria-live="polite">
+    <div className="flex items-center gap-2 px-4 pt-2 text-[11px] text-slate-400 shrink-0" role="status" aria-live="polite">
       <span className="flex items-center gap-0.5" aria-hidden="true">
         <span className="h-1 w-1 animate-bounce rounded-full bg-cyan-300 [animation-delay:-0.2s]" />
         <span className="h-1 w-1 animate-bounce rounded-full bg-cyan-300 [animation-delay:-0.1s]" />
@@ -41,8 +41,20 @@ const TypingIndicator = ({ users }) => {
   );
 };
 
+const AiThinkingIndicator = ({ isAiThinking, aiThinkingUser }) => {
+  if (!isAiThinking) return null;
+  const username = aiThinkingUser?.username || "Gemini AI";
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 text-[11px] text-cyan-300 bg-cyan-500/10 border-t border-cyan-500/20 shrink-0" role="status" aria-live="polite">
+      <Bot size={13} className="animate-spin text-cyan-400" />
+      <span className="truncate font-semibold">{username} is generating code...</span>
+    </div>
+  );
+};
+
 const ChatSearchBar = ({ query, filter, onQueryChange, onFilterChange, onClose }) => (
-  <div className="border-b border-slate-800/80 bg-[#0b1020]/95 px-3 py-2.5">
+  <div className="border-b border-slate-800/80 bg-[#0b1020]/95 px-3 py-2.5 shrink-0">
     <div className="flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/70 px-2.5 py-1.5 focus-within:border-cyan-300/45">
       <Search size={14} className="shrink-0 text-slate-500" />
       <input
@@ -57,92 +69,55 @@ const ChatSearchBar = ({ query, filter, onQueryChange, onFilterChange, onClose }
         <button
           type="button"
           onClick={() => onQueryChange("")}
-          className="rounded-md p-0.5 text-slate-500 transition hover:bg-slate-800 hover:text-white"
-          aria-label="Clear search"
+          className="rounded-md p-0.5 text-slate-500 transition hover:bg-slate-800 hover:text-white cursor-pointer"
         >
-          <X size={13} />
+          <X size={12} />
         </button>
       )}
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-md p-0.5 text-slate-500 transition hover:bg-slate-800 hover:text-white"
-        aria-label="Close search"
-      >
-        <X size={14} />
-      </button>
     </div>
 
     <div className="mt-2 flex items-center gap-1 overflow-x-auto hide-scrollbar">
-      {SEARCH_FILTERS.map(({ id, label, icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => onFilterChange(id)}
-          className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium transition ${
-            filter === id
-              ? "bg-cyan-400/10 text-cyan-100 ring-1 ring-cyan-300/25"
-              : "text-slate-500 hover:bg-slate-800 hover:text-slate-300"
-          }`}
-        >
-          {icon}
-          {label}
-        </button>
-      ))}
+      {SEARCH_FILTERS.map((item) => {
+        const isActive = filter === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onFilterChange(item.id)}
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition cursor-pointer shrink-0 ${
+              isActive
+                ? "border border-cyan-400/40 bg-cyan-500/20 text-cyan-200"
+                : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-200"
+            }`}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   </div>
 );
 
-const AiThinkingIndicator = ({ isAiThinking }) => {
-  if (!isAiThinking) return null;
+const Chat = ({ toggleChat, isFullWidthChat, onToggleFullscreen, handleKeyPress }) => {
+  const { project } = useProject();
+  const { messages } = useMessages();
+  const { typingUsers, isAiThinking, aiThinkingUser } = useChat();
 
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 mx-3 my-1.5 text-xs text-purple-300 bg-purple-950/60 border border-purple-800/60 rounded-xl w-fit shadow-md animate-pulse shrink-0" role="status" aria-live="polite">
-      <Bot size={15} className="animate-spin text-purple-400 shrink-0" />
-      <span className="font-semibold tracking-wide text-purple-200">Gemini AI is thinking & generating code...</span>
-      <span className="flex items-center gap-1 ml-1" aria-hidden="true">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:-0.3s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:-0.15s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400" />
-      </span>
-    </div>
-  );
-};
-
-const Chat = ({ toggleChat, isFullWidthChat, onToggleFullscreen }) => {
   const [showUsers, setShowUsers] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState("all");
 
-  const { handleSend, typingUsers, isAiThinking } = useChat();
   const chatEndRef = useRef(null);
-  const prevLastIdRef = useRef(null);
 
-  const { project } = useProject();
-  const { messages } = useMessages();
-
-  // Auto scroll to bottom ONLY when a new latest message arrives (sent or received)
-  const lastMessage = messages[messages.length - 1];
-  const lastMessageId = lastMessage?._id || lastMessage?.createdAt;
+  const scrollToBottom = useCallback((behavior = "smooth") => {
+    chatEndRef.current?.scrollIntoView({ behavior });
+  }, []);
 
   useEffect(() => {
-    if (lastMessageId && lastMessageId !== prevLastIdRef.current) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      prevLastIdRef.current = lastMessageId;
-    }
-  }, [lastMessageId]);
-
-  // handle enter press
-  const handleKeyPress = useCallback(
-    (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
+    scrollToBottom("smooth");
+  }, [messages.length, scrollToBottom]);
 
   const closeSearch = useCallback(() => {
     setIsSearchOpen(false);
@@ -159,7 +134,7 @@ const Chat = ({ toggleChat, isFullWidthChat, onToggleFullscreen }) => {
   }, [closeSearch, isSearchOpen]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#080b11]/90 backdrop-blur-2xl border-r border-slate-800/80">
+    <div className="w-full h-full flex flex-col bg-[#080b11]/90 backdrop-blur-2xl border-r border-slate-800/80 overflow-x-hidden min-w-0 font-sans">
       {showUsers ? (
         <Suspense
           fallback={
@@ -196,7 +171,7 @@ const Chat = ({ toggleChat, isFullWidthChat, onToggleFullscreen }) => {
             searchQuery={searchQuery}
             searchFilter={searchFilter}
           />
-          <AiThinkingIndicator isAiThinking={isAiThinking} />
+          <AiThinkingIndicator isAiThinking={isAiThinking} aiThinkingUser={aiThinkingUser} />
           <TypingIndicator users={typingUsers} />
           <ChatInput handleKeyPress={handleKeyPress} />
         </>

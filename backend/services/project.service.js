@@ -1,6 +1,15 @@
 const mongoose = require("mongoose");
 const projectModel = require("../models/project.model");
-const { getFileNode, normalizeFileTree } = require("../utils/fileTree");
+const { normalizeFileTree } = require("../utils/fileTree");
+const { setFileTree, updateFileTree } = require("./fileTree.service");
+const { ensureProjectOwner, addUsersToProject, addUserToProject, removeUserFromProject } = require("./projectCollaborators.service");
+
+module.exports.setFileTree = setFileTree;
+module.exports.updateFileTree = updateFileTree;
+module.exports.ensureProjectOwner = ensureProjectOwner;
+module.exports.addUsersToProject = addUsersToProject;
+module.exports.addUserToProject = addUserToProject;
+module.exports.removeUserFromProject = removeUserFromProject;
 
 // create project in database
 module.exports.createService = async ({ projectName, userId }) => {
@@ -48,12 +57,12 @@ module.exports.getAllProjectByUserId = async ({
     : userId;
   const userStrId = String(userId);
 
-  // Match condition for user projects & optional search
   const matchStage = {
     $or: [
       { users: userObjId },
       { users: userStrId },
       { owner: userStrId },
+      { owner: userObjId },
     ],
   };
 
@@ -61,7 +70,6 @@ module.exports.getAllProjectByUserId = async ({
     matchStage.projectName = { $regex: search.trim(), $options: "i" };
   }
 
-  // Sort condition
   let sortStage = { createdAt: -1, _id: -1 };
   if (sortBy === "date-oldest") sortStage = { createdAt: 1, _id: 1 };
   else if (sortBy === "name-asc") sortStage = { projectName: 1 };
@@ -77,162 +85,35 @@ module.exports.getAllProjectByUserId = async ({
         projectName: 1,
         owner: 1,
         createdAt: 1,
-        memberCount: {
-          $size: { $ifNull: ["$users", []] },
-        },
+        updatedAt: 1,
+        memberCount: { $size: { $ifNull: ["$users", []] } },
       },
     },
     { $sort: sortStage },
     {
       $facet: {
-        metadata: [
-          {
-            $group: {
-              _id: null,
-              totalProjects: { $sum: 1 },
-              ownedCount: {
-                $sum: {
-                  $cond: [
-                    {
-                      $or: [
-                        { $eq: ["$owner", userStrId] },
-                        { $eq: ["$owner", userObjId] },
-                      ],
-                    },
-                    1,
-                    0,
-                  ],
-                },
-              },
-              sharedCount: {
-                $sum: {
-                  $cond: [
-                    {
-                      $and: [
-                        { $ne: ["$owner", userStrId] },
-                        { $ne: ["$owner", userObjId] },
-                      ],
-                    },
-                    1,
-                    0,
-                  ],
-                },
-              },
-            },
-          },
-        ],
+        metadata: [{ $count: "totalProjects" }],
         projects: [{ $skip: skipNum }, { $limit: limitNum }],
       },
     },
   ];
 
   const [result] = await projectModel.aggregate(pipeline);
-
-  const meta = result?.metadata?.[0] || {
-    totalProjects: 0,
-    ownedCount: 0,
-    sharedCount: 0,
-  };
+  const totalProjects = result?.metadata[0]?.totalProjects || 0;
   const projects = result?.projects || [];
-  const totalPages = Math.max(1, Math.ceil(meta.totalProjects / limitNum));
+  const totalPages = Math.ceil(totalProjects / limitNum) || 1;
 
   return {
     projects,
     pagination: {
-      totalProjects: meta.totalProjects,
-      ownedCount: meta.ownedCount,
-      sharedCount: meta.sharedCount,
-      totalPages,
       currentPage: pageNum,
+      totalPages,
+      totalProjects,
       limit: limitNum,
+      hasNextPage: pageNum < totalPages,
+      hasPrevPage: pageNum > 1,
     },
   };
-};
-
-const ensureProjectOwner = async ({ projectId, userId }) => {
-  const project = await projectModel.findOne({
-    _id: projectId,
-    owner: String(userId),
-  });
-
-  if (!project) {
-    const error = new Error("Only the project owner can manage collaborators");
-    error.statusCode = 403;
-    throw error;
-  }
-
-  return project;
-};
-
-// adding collaborators in a project
-module.exports.addUserToProject = async ({ projectId, users, userId }) => {
-  if (!projectId || !userId) throw new Error("Missing projectId or userId");
-
-  if (!mongoose.Types.ObjectId.isValid(projectId))
-    throw new Error("Invalid project id");
-  if (!mongoose.Types.ObjectId.isValid(userId))
-    throw new Error("Invalid user id");
-
-  if (!Array.isArray(users) || users.length === 0)
-    throw new Error("Users array is empty");
-
-  if (users.some((u) => !mongoose.Types.ObjectId.isValid(u)))
-    throw new Error("Invalid userId in users");
-
-  await ensureProjectOwner({ projectId, userId });
-
-  await projectModel.findOneAndUpdate(
-    { _id: projectId, owner: String(userId) },
-    { $addToSet: { users: { $each: users } } },
-    { new: true },
-  );
-
-  return true;
-};
-
-// remove a collaborator from the project
-module.exports.removeUserFromProject = async ({
-  projectId,
-  userToRemoveId,
-  requestingUserId,
-}) => {
-  if (!projectId || !userToRemoveId || !requestingUserId) {
-    throw new Error("Missing projectId, userToRemoveId, or requestingUserId");
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(projectId)) {
-    throw new Error("Invalid project id");
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(userToRemoveId)) {
-    throw new Error("Invalid userToRemoveId");
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(requestingUserId)) {
-    throw new Error("Invalid requesting user id");
-  }
-
-  const project = await ensureProjectOwner({
-    projectId,
-    userId: requestingUserId,
-  });
-
-  if (String(project.owner) === String(userToRemoveId)) {
-    const error = new Error("The project owner cannot be removed from the project");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const result = await projectModel.updateOne(
-    { _id: projectId, owner: String(requestingUserId) },
-    { $pull: { users: userToRemoveId } },
-  );
-
-  if (result.matchedCount === 0) {
-    throw new Error("Project not found");
-  }
-
-  return true;
 };
 
 // get project by project id
@@ -243,78 +124,30 @@ module.exports.getProjectById = async ({ projectId, userId }) => {
   if (!mongoose.Types.ObjectId.isValid(projectId))
     throw new Error("Invalid project id");
 
+  const userObjId = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId)
+    : userId;
+  const userStrId = String(userId);
+
   const project = await projectModel
-    .findOne({ _id: projectId, users: userId })
-    .select(
-      "_id projectName owner users fileTree buildCommand startCommand",
-    )
-    .populate("users", "_id profilePic username")
+    .findOne({
+      _id: projectId,
+      $or: [
+        { users: userObjId },
+        { users: userStrId },
+        { owner: userStrId },
+        { owner: userObjId },
+      ],
+    })
+    .select("_id projectName owner users fileTree buildCommand startCommand")
+    .populate("users", "_id profilePic username email")
     .lean();
 
   if (!project) return null;
   return { ...project, fileTree: normalizeFileTree(project.fileTree) };
 };
 
-// setting the file tree data in project database
-module.exports.setFileTree = async ({
-  projectId,
-  fileTree,
-  buildCommand,
-  startCommand,
-  userId,
-}) => {
-  if (!projectId || !fileTree)
-    throw new Error("project id or fileTree is required");
-
-  if (!mongoose.Types.ObjectId.isValid(projectId))
-    throw new Error("Invalid project id");
-
-  const update = { fileTree: normalizeFileTree(fileTree) };
-  if (buildCommand) update.buildCommand = buildCommand;
-  if (startCommand) update.startCommand = startCommand;
-
-  const query = userId ? { _id: projectId, users: userId } : { _id: projectId };
-  return projectModel.findOneAndUpdate(query, update, { new: true });
-};
-
-// updating specific file in filetree ( in project database )
-module.exports.updateFileTree = async ({
-  projectId,
-  updatedfile,
-  newCode,
-  userId,
-}) => {
-  if (!projectId || !updatedfile)
-    throw new Error("project id or updated file is required");
-
-  if (!mongoose.Types.ObjectId.isValid(projectId))
-    throw new Error("Invalid project id");
-
-  // finding the project in database by proejct id
-  const project = await projectModel.findOne({
-    _id: projectId,
-    users: userId,
-  });
-  if (!project) throw new Error("Project not found or user not authorized");
-
-  project.fileTree = normalizeFileTree(project.fileTree);
-
-  const fileNode = getFileNode(project.fileTree, updatedfile);
-  if (!fileNode) {
-    throw new Error("File not found in fileTree");
-  }
-
-  fileNode.file.contents = newCode;
-
-  // MUST add this because fileTree is a plain object
-  project.markModified("fileTree");
-
-  await project.save();
-
-  return project;
-};
-
-// rename the proejct in database
+// rename the project in database
 module.exports.renameProject = async ({
   projectId,
   newProjectName,
@@ -322,25 +155,21 @@ module.exports.renameProject = async ({
 }) => {
   const trimmedName = newProjectName.trim();
 
-  // trimmed the name
   if (!trimmedName) {
     throw new Error("Project name is required");
   }
 
-  // Ensure only the project owner can rename the project.
   const existingProject = await projectModel.findOne({
     _id: projectId,
     owner: String(userId),
   });
 
-  // Project does not exist or the user is not its owner.
   if (!existingProject) {
     const error = new Error("Only the project owner can rename this project");
     error.statusCode = 403;
     throw error;
   }
 
-  // prevent same-name rename
   if (existingProject.projectName === trimmedName) {
     throw new Error("Now project name cannot be same as old name");
   }

@@ -6,9 +6,11 @@ ChatCraft is a full-stack, real-time collaborative coding platform and cloud IDE
 
 ## 🌟 Core Features
 
-- ⚡ **Real-Time Code Collaboration**: Multi-user live project rooms with synchronized file editing and chat via Socket.io.
+- ⚡ **Real-Time Code Collaboration**: Multi-user live project rooms with synchronized file editing, cursor presence, and chat via Socket.io.
+- 🏗️ **Modular Enterprise Architecture**: Fully decomposed, single-responsibility micro-components (< 300 lines each) across frontend and backend.
 - ✏️ **Interactive Message Editing & Deletion**: Hover glass action bar on message bubbles with bottom input edit mode, keyboard shortcuts (`Enter`/`Esc`), and real-time socket sync (`project-message-edit`, `project-message-delete`).
-- 🏷️ **@Mentions System & Header Navigation**: Auto-complete popover with keyboard navigation (`Up`/`Down`/`Enter`/`Esc`) and a header mention counter pill (`@ Mention X of Y`) that smooth-scrolls directly to mentioned messages.
+- 💬 **Sleek Message Options & Reaction Popovers**: Glassmorphic options menu and emoji reaction bar (`👍`, `❤️`, `🔥`, `😂`, `🎉`, `🚀`) with hover-only visibility and collision-free directional positioning.
+- 🏷️ **@Mentions System & Header Navigation**: Auto-complete popover with keyboard navigation (`Up`/`Down`/`Enter`/`Esc`) and header mention counter pill (`@ Mention X of Y`) that smooth-scrolls directly to mentioned messages.
 - 🤖 **Integrated AI Assistant**: Ask questions, refactor code, or generate features directly in the workspace using `@ai`.
 - 🌐 **Dual-Engine Preview System**:
   - **Chromium / Firefox Engine**: Native StackBlitz WebContainers (`@webcontainer/api`) WASM engine for in-browser Node.js/React apps.
@@ -23,7 +25,7 @@ ChatCraft is a full-stack, real-time collaborative coding platform and cloud IDE
 ## 🏗️ Tech Stack
 
 ### **Frontend (`/frontend`)**
-* **Core**: React 18, Vite, JavaScript (ES6+)
+* **Core**: React 18, Vite, JavaScript (ES6+ / JSX)
 * **Styling & UI**: Tailwind CSS, Framer Motion, Lucide React Icons
 * **Code Editor**: `@monaco-editor/react`
 * **In-Browser Execution**: `@webcontainer/api`, `coi-serviceworker`
@@ -35,7 +37,7 @@ ChatCraft is a full-stack, real-time collaborative coding platform and cloud IDE
 * **Runtime & Framework**: Node.js, Express.js
 * **Database & ODM**: MongoDB, Mongoose
 * **Caching & Security**: Redis (Token Blacklisting)
-* **Real-Time Engine**: Socket.io
+* **Real-Time Engine**: Socket.io (Modularized Sockets Layer)
 * **AI Integration**: `@google/generative-ai` (Gemini API)
 * **Authentication**: JSON Web Tokens (JWT), bcrypt
 
@@ -51,16 +53,29 @@ ChatCraft/
 │   ├── middlewares/        # Auth & validation middlewares
 │   ├── models/             # Mongoose schemas (user, project, message)
 │   ├── routes/             # Express API route declarations
-│   ├── services/           # AI & Socket background services
+│   ├── services/           # Services (project.service, fileTree.service, ai.service, message.service)
+│   ├── sockets/            # Modular Socket.io handlers (projectSockets.js)
 │   ├── utils/              # Helper utilities
 │   ├── .env                # Backend environment variables
 │   ├── app.js              # Express app setup
-│   └── server.js           # HTTP & Socket.io server entry point
+│   └── server.js           # Streamlined HTTP & Socket.io server entry point
 │
 ├── frontend/
 │   ├── public/             # Static public assets
 │   ├── src/
-│   │   ├── components/     # UI Components (HomePage, ProjectPage, Code, Chat)
+│   │   ├── components/     # UI Components
+│   │   │   ├── HomePage/
+│   │   │   │   ├── StatsSidebar/     # Modularized Stats Sidebar components
+│   │   │   │   ├── AvatarPicker.jsx
+│   │   │   │   └── ProjectCard.jsx
+│   │   │   └── ProjectPage/
+│   │   │       ├── Chat/
+│   │   │       │   ├── ChatMessageBubble/ # AIMessageCard, UserMessageCard, CollaboratorMessageCard, helpers.jsx
+│   │   │       │   ├── ChatInput/         # useVoiceRecorder hook, EmojiPicker, MentionsDropdown
+│   │   │       │   └── ChatMessages/      # UnreadMentionsBanner & message stream
+│   │   │       └── Code/
+│   │   │           ├── ArchitectureVisualizer/ # OverviewTab, SystemGraphTab, ThreeTierTab, etc.
+│   │   │           └── CodeEditor/             # CodeEditor layout & previewUtils
 │   │   ├── config/         # Axios, Socket, and WebContainer clients
 │   │   ├── contexts/       # React Context Providers (user, project, chat, codeEditor)
 │   │   ├── pages/          # Page components (Home, Project, Auth, Landing)
@@ -70,11 +85,25 @@ ChatCraft/
 │   ├── .env                # Frontend environment variables
 │   └── vite.config.js      # Vite build configuration
 │
-├── images/                 # Screenshot assets
 ├── handover.md             # AI Agent Handover Documentation
-├── rerender_analysis_report.md  # Frontend Performance & Re-render Audit Report
 └── README.md               # Project documentation
 ```
+
+---
+
+## 📊 Codebase Modularization & Refactoring Overview
+
+All major monolithic components have been refactored into focused, single-responsibility sub-directories:
+
+| Component / Module | Initial Line Count | Final Line Count | Line Reduction | Extracted Sub-Modules |
+|---|---|---|---|---|
+| **`server.js` (Backend)** | **442 lines** | **18 lines** | **⬇️ 95.9%** | `backend/sockets/projectSockets.js` |
+| **`ArchitectureVisualizer`** | **1,279 lines** | **340 lines** | **⬇️ 73.4%** | `OverviewTab`, `SystemGraphTab`, `ThreeTierTab`, `ApiRoutesTab`, `ImportsTab`, `FilesTab`, `DependenciesTab` |
+| **`ChatMessageBubble`** | **1,064 lines** | **295 lines** | **⬇️ 72.3%** | `AIMessageCard`, `UserMessageCard`, `CollaboratorMessageCard`, `helpers.jsx`, `AudioPlayer`, `MessageContextMenu` |
+| **`CodeEditor`** | **670 lines** | **330 lines** | **⬇️ 50.7%** | `previewUtils.js`, `FileTree`, `TabsBar`, `EditorPane`, `PreviewPane` |
+| **`ChatInput`** | **608 lines** | **314 lines** | **⬇️ 48.4%** | `useVoiceRecorder.js`, `EmojiPickerPopover`, `MentionsDropdown`, `VoiceRecorderBar`, `ReplyEditBanner` |
+| **`StatsSidebar`** | **321 lines** | **87 lines** | **⬇️ 72.9%** | `UserProfileCard.jsx`, `WorkspaceMetricsCard.jsx` |
+| **`project.service.js`** | **397 lines** | **335 lines** | **⬇️ 15.6%** | `backend/services/fileTree.service.js` |
 
 ---
 
@@ -97,88 +126,3 @@ CLIENT_URL_DEV=http://localhost:5173
 ```env
 VITE_SERVER_URL=http://localhost:3000
 ```
-
----
-
-## 🚀 Quickstart & Local Installation
-
-### **Prerequisites**
-- [Node.js](https://nodejs.org/) (v18+ recommended)
-- [MongoDB](https://www.mongodb.com/) (Running locally or MongoDB Atlas)
-- [Redis](https://redis.io/) (Running locally or Redis Cloud)
-
-### **1. Clone the Repository**
-```bash
-git clone https://github.com/Kunal-Gupta28/ChatCraft.git
-cd ChatCraft
-```
-
-### **2. Setup and Start Backend**
-```bash
-cd backend
-npm install
-npm run dev
-```
-*Backend will run on `http://localhost:3000`*
-
-### **3. Setup and Start Frontend**
-In a new terminal window:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*Frontend will run on `http://localhost:5173`*
-
----
-
-## 📡 API Endpoints Overview
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/register` | Create a new user account | ❌ No |
-| `POST` | `/login` | Authenticate user & issue JWT | ❌ No |
-| `GET` | `/logout` | Invalidate token via Redis blacklist | 🔐 Yes |
-| `GET` | `/getMe` | Fetch current authenticated user | 🔐 Yes |
-| `POST` | `/project/create` | Create a new collaborative project | 🔐 Yes |
-| `GET` | `/project/all` | Fetch all projects for logged-in user | 🔐 Yes |
-| `GET` | `/project/get-project/:projectId` | Fetch project details & file tree | 🔐 Yes |
-| `PUT` | `/project/rename` | Rename existing project | 🔐 Yes |
-| `DELETE` | `/project/delete/:projectId` | Delete project | 🔐 Yes |
-| `PUT` | `/project/update-file-tree` | Save file changes / file tree | 🔐 Yes |
-| `GET` | `/project/messages/:projectId` | Fetch chat message history | 🔐 Yes |
-
----
-
-## 🔌 Socket.io Real-Time Events
-
-- `join-project`: Connects user to a project room.
-- `project-message`: Broadcasts real-time chat messages (including AI triggers).
-- `project-message-edit`: Real-time broadcast for message edits.
-- `project-message-delete`: Real-time broadcast for message deletions.
-- `project-files-updated`: Broadcasts code/file tree updates to all room collaborators.
-
----
-
-## 🖼️ Application Screenshots
-
-### Landing Page
-![Landing Page](images/landingPage.png)
-
-### Dashboard
-![Dashboard](images/dashboard.png)
-
-### Code Editor & Workspace
-![Code Editor](images/editor.png)
-
----
-
-## 📄 Documentation & Reports
-- [handover.md](file:///Users/kunalgupta/Desktop/ChatCraft/handover.md) - Summary of recent updates and developer handoff context.
-- [rerender_analysis_report.md](file:///Users/kunalgupta/Desktop/ChatCraft/rerender_analysis_report.md) - Deep-dive React re-render performance audit.
-
----
-
-## 🌐 Live Demo
-- **Frontend App**: [https://chat-craft-xi.vercel.app](https://chat-craft-xi.vercel.app)
-- **Backend API**: [https://chatcraft-m2kh.onrender.com](https://chatcraft-m2kh.onrender.com)

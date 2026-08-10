@@ -28,7 +28,7 @@ const Project = () => {
   const { setUser } = useUser();
   const { project, setProject, updateProjectDetails } = useProject();
   const { setMessages } = useMessages();
-  const { updateTypingUser, clearTypingUsers } = useChat();
+  const { updateTypingUser, clearTypingUsers, setIsAiThinking } = useChat();
   const { fileTree, setFileTree, webContainer, setWebContainer } =
     useCodeEditor();
   const [editorPresence, setEditorPresence] = useState([]);
@@ -98,6 +98,7 @@ const Project = () => {
 
   useEffect(() => {
     if (!projectData || loadedProjectIdRef.current === projectData._id) return;
+
     loadedProjectIdRef.current = projectData._id;
 
     const normalizedFileTree = normalizeFileTree(projectData.fileTree);
@@ -141,7 +142,9 @@ const Project = () => {
     const cleanups = [
       receiveMessage("project-message", (message) => {
         setMessages((current) => mergeMessages(current, [message]));
-        setIsAiThinking(false);
+        if (typeof setIsAiThinking === "function") {
+          setIsAiThinking(false);
+        }
       }),
       receiveMessage("project-message-edit", ({ id, message }) => {
         setMessages((current) =>
@@ -240,6 +243,7 @@ const Project = () => {
     project?._id,
     setFileTree,
     setMessages,
+    setIsAiThinking,
     updateProjectDetails,
     updateTypingUser,
     clearTypingUsers,

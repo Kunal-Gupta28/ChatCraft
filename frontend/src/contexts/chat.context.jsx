@@ -2,57 +2,91 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  selectInputMessage,
-  selectIsSending,
-  selectSendError,
-  setInputMessage as setInputMessageAction,
-  setIsSending as setIsSendingAction,
-  setSendError as setSendErrorAction,
-  updateMessage as updateMessageAction,
-  deleteMessage as deleteMessageAction,
-  togglePinMessage as togglePinMessageAction,
+  selectInputMessage, selectIsSending, selectSendError,
+  setInputMessage as setInputMessageAction, setIsSending as setIsSendingAction, setSendError as setSendErrorAction,
 } from "../store/slices/chatSlice";
-import { selectUser } from "../store/slices/userSlice";
-import { sendMessage } from "../config/socket";
+import { sendMessage, receiveMessage } from "../config/socket";
+import { useChatActions } from "./useChatActions";
 
 const ChatContext = createContext(null);
+
+const AI_THINKING_TIMEOUT_MS = 30000; // 30s hard cap
 
 export const ChatProvider = ({ children }) => {
   const rawInputMessage = useSelector(selectInputMessage);
   const inputMessage = typeof rawInputMessage === "string" ? rawInputMessage : "";
   const isSending = useSelector(selectIsSending);
   const sendError = useSelector(selectSendError);
-  const user = useSelector(selectUser);
   const dispatch = useDispatch();
 
-  const [editingMessage, setEditingMessage] = useState(null);
-  const [replyToMessage, setReplyToMessage] = useState(null);
+  useEffect(() => {
+    if (sendError) {
+      const timer = setTimeout(() => {
+        dispatch(setSendErrorAction(null));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [sendError, dispatch]);
+
   const [typingUsers, setTypingUsers] = useState([]);
   const [isAiThinking, setIsAiThinkingState] = useState(false);
+  const [aiThinkingUser, setAiThinkingUser] = useState(null);
   const aiThinkingTimerRef = useRef(null);
+
+  const {
+    editingMessage, replyToMessage, setReplyToMessage, startEditMessage, cancelEditMessage,
+    startReplyMessage, cancelReplyMessage, handleSaveEdit, handleDelete, handleTogglePin,
+    handleToggleReaction
+  } = useChatActions({ inputMessage });
+
+  // Alias functions to support legacy component call prop names
+  const handleDeleteMessage = handleDelete;
+  const handleTogglePinMessage = handleTogglePin;
+
+  // Listen for server-emitted AI thinking events
+  useEffect(() => {
+    const cleanup = receiveMessage("project-ai-thinking", (data) => {
+      if (data?.isThinking) {
+        setIsAiThinkingState(true);
+        setAiThinkingUser({ username: data.username || "Gemini AI", userId: data.userId });
+        if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current);
+        aiThinkingTimerRef.current = setTimeout(() => {
+          setIsAiThinkingState(false);
+          setAiThinkingUser(null);
+        }, AI_THINKING_TIMEOUT_MS);
+      } else {
+        setIsAiThinkingState(false);
+        setAiThinkingUser(null);
+        if (aiThinkingTimerRef.current) {
+          clearTimeout(aiThinkingTimerRef.current);
+          aiThinkingTimerRef.current = null;
+        }
+      }
+    });
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+    };
+  }, []);
 
   const messages = useSelector((state) => state.chat.messages || []);
   const prevMsgLengthRef = useRef(messages.length);
 
   const clearAiThinking = useCallback(() => {
     setIsAiThinkingState(false);
+    setAiThinkingUser(null);
     if (aiThinkingTimerRef.current) {
       clearTimeout(aiThinkingTimerRef.current);
       aiThinkingTimerRef.current = null;
     }
   }, []);
 
+  // Auto-clear AI indicator when any new message arrives
   useEffect(() => {
     if (messages.length > prevMsgLengthRef.current) {
       prevMsgLengthRef.current = messages.length;
-      const lastMsg = messages[messages.length - 1];
-      const sender = String(lastMsg?.senderName || lastMsg?.sender?.username || "").toLowerCase();
-      const isFromAI = sender.includes("gemini") || sender.includes("ai") || Boolean(lastMsg?.fileTree || lastMsg?.isAi);
-      if (isFromAI) {
-        clearAiThinking();
-      }
+      clearAiThinking();
     }
-  }, [messages, clearAiThinking]);
+  }, [messages.length, clearAiThinking]);
 
   const setIsAiThinking = useCallback((val) => {
     if (val) {
@@ -60,7 +94,8 @@ export const ChatProvider = ({ children }) => {
       if (aiThinkingTimerRef.current) clearTimeout(aiThinkingTimerRef.current);
       aiThinkingTimerRef.current = setTimeout(() => {
         setIsAiThinkingState(false);
-      }, 10000);
+        setAiThinkingUser(null);
+      }, AI_THINKING_TIMEOUT_MS);
     } else {
       clearAiThinking();
     }
@@ -73,70 +108,17 @@ export const ChatProvider = ({ children }) => {
     [dispatch]
   );
 
-  const startEditMessage = useCallback(
-    (msg) => {
-      if (!msg) {
-        setEditingMessage(null);
-        return;
-      }
-      setEditingMessage(msg);
-      dispatch(setInputMessageAction(msg.message ?? ""));
-    },
-    [dispatch]
-  );
-
-  const cancelEditMessage = useCallback(() => {
-    setEditingMessage(null);
-    dispatch(setInputMessageAction(""));
-  }, [dispatch]);
-
-  const startReplyMessage = useCallback((msg) => {
-    if (!msg) {
-      setReplyToMessage(null);
-      return;
-    }
-    const id = msg._id ?? msg.id;
-    const senderName = msg.senderName || "User";
-    const rawMsg = msg.message;
-    const text = typeof rawMsg === "string" ? rawMsg : JSON.stringify(rawMsg || "");
-    setReplyToMessage({ id, senderName, text: text.slice(0, 100) });
-  }, []);
-
-  const cancelReplyMessage = useCallback(() => {
-    setReplyToMessage(null);
-  }, []);
-
   const updateTypingUser = useCallback(({ userId, username, isTyping }) => {
     if (!userId) return;
-
     setTypingUsers((current) => {
-      const withoutUser = current.filter((user) => String(user.userId) !== String(userId));
-      return isTyping
-        ? [...withoutUser, { userId, username: username || "A collaborator" }]
-        : withoutUser;
+      const withoutUser = current.filter((u) => String(u.userId) !== String(userId));
+      return isTyping ? [...withoutUser, { userId, username: username || "A collaborator" }] : withoutUser;
     });
   }, []);
 
   const clearTypingUsers = useCallback(() => {
     setTypingUsers([]);
   }, []);
-
-  const handleSaveEdit = useCallback(async () => {
-    const trimmed = String(inputMessage ?? "").trim();
-    if (!editingMessage || !trimmed) return;
-    const id = editingMessage.id ?? editingMessage._id;
-    const newMessage = trimmed;
-
-    dispatch(updateMessageAction({ id, message: newMessage }));
-    dispatch(setInputMessageAction(""));
-    setEditingMessage(null);
-
-    try {
-      await sendMessage("project-message-edit", { id, message: newMessage });
-    } catch (err) {
-      console.warn("Socket edit message error:", err);
-    }
-  }, [dispatch, editingMessage, inputMessage]);
 
   const handleSend = useCallback(async () => {
     if (editingMessage) {
@@ -145,7 +127,7 @@ export const ChatProvider = ({ children }) => {
     }
 
     const message = inputMessage.trim();
-    if (!message || !user?._id || isSending) return;
+    if (!message || isSending) return;
 
     const activeReply = replyToMessage;
 
@@ -154,139 +136,64 @@ export const ChatProvider = ({ children }) => {
     dispatch(setIsSendingAction(true));
     setReplyToMessage(null);
 
-    if (message.toLowerCase().includes("@ai")) {
+    const isAiTargeted = message.toLowerCase().includes("@ai");
+    if (isAiTargeted) {
       setIsAiThinking(true);
     }
 
     try {
-      await sendMessage("project-message", { message, replyTo: activeReply });
-    } catch (error) {
-      dispatch(setInputMessageAction(message));
-      dispatch(setSendErrorAction(error.message));
-      setReplyToMessage(activeReply);
-    } finally {
-      dispatch(setIsSendingAction(false));
-    }
-  }, [dispatch, editingMessage, handleSaveEdit, inputMessage, isSending, user?._id, replyToMessage]);
-
-  const handleSendVoiceMessage = useCallback(async ({ audioUrl, duration, sendToAI }) => {
-    if (!audioUrl || !user?._id || isSending || editingMessage) return;
-
-    const activeReply = replyToMessage;
-    const aiTrigger = sendToAI ? inputMessage : "";
-    if (sendToAI) dispatch(setInputMessageAction(""));
-    dispatch(setSendErrorAction(""));
-    dispatch(setIsSendingAction(true));
-    setReplyToMessage(null);
-
-    if (sendToAI || inputMessage.toLowerCase().includes("@ai")) {
-      setIsAiThinking(true);
-    }
-
-    try {
-      await sendMessage("project-audio-message", {
-        audioUrl,
-        duration,
-        sendToAI: Boolean(sendToAI),
-        replyTo: activeReply,
+      await sendMessage("project-message", {
+        message,
+        replyTo: activeReply?.id ? activeReply : undefined,
       });
-    } catch (error) {
-      dispatch(setSendErrorAction(error.message));
-      setReplyToMessage(activeReply);
-      if (aiTrigger) dispatch(setInputMessageAction(aiTrigger));
+    } catch (err) {
+      dispatch(setSendErrorAction(err?.message || "Failed to send message"));
+      dispatch(setInputMessageAction(message));
+      clearAiThinking();
     } finally {
       dispatch(setIsSendingAction(false));
     }
-  }, [dispatch, editingMessage, inputMessage, isSending, replyToMessage, user?._id]);
+  }, [dispatch, editingMessage, handleSaveEdit, inputMessage, isSending, replyToMessage, setInputMessageAction, setReplyToMessage, setIsAiThinking, clearAiThinking]);
 
-  const handleDeleteMessage = useCallback(
-    async (id) => {
-      if (!id) return;
-      dispatch(deleteMessageAction(id));
-      try {
-        await sendMessage("project-message-delete", { id });
-      } catch (err) {
-        console.warn("Socket delete message error:", err);
-      }
-    },
-    [dispatch]
-  );
+  // Voice message handler — sends audio data URL via socket
+  const handleSendVoiceMessage = useCallback(async ({ audioUrl, audioDuration, sendToAI = false }) => {
+    if (!audioUrl) return;
 
-  const handleTogglePinMessage = useCallback(
-    async (id) => {
-      if (!id) return;
-      dispatch(togglePinMessageAction({ id }));
-      try {
-        await sendMessage("project-message-pin", { id });
-      } catch (err) {
-        console.warn("Socket pin message error:", err);
-      }
-    },
-    [dispatch]
-  );
+    dispatch(setIsSendingAction(true));
+    try {
+      const messageText = sendToAI ? "@ai [Voice Note]" : "[Voice Note]";
+      if (sendToAI) setIsAiThinking(true);
+      await sendMessage("project-message", {
+        message: messageText,
+        audioUrl,
+        audioDuration,
+      });
+    } catch (err) {
+      dispatch(setSendErrorAction(err?.message || "Failed to send voice note"));
+      clearAiThinking();
+    } finally {
+      dispatch(setIsSendingAction(false));
+    }
+  }, [dispatch, setIsAiThinking, clearAiThinking]);
 
-  const handleToggleReaction = useCallback(
-    async (id, emoji) => {
-      if (!id || !emoji) return;
-      try {
-        await sendMessage("project-message-react", { id, emoji });
-      } catch (err) {
-        console.warn("Socket react message error:", err);
-      }
-    },
-    []
-  );
-
-  const value = useMemo(
+  const contextValue = useMemo(
     () => ({
-      inputMessage,
-      setInputMessage,
-      handleSend,
-      handleSendVoiceMessage,
-      editingMessage,
-      startEditMessage,
-      cancelEditMessage,
-      replyToMessage,
-      startReplyMessage,
-      cancelReplyMessage,
-      handleSaveEdit,
-      handleDeleteMessage,
-      handleTogglePinMessage,
-      handleToggleReaction,
-      isSending,
-      sendError,
-      typingUsers,
-      updateTypingUser,
-      clearTypingUsers,
-      isAiThinking,
-      setIsAiThinking,
+      inputMessage, setInputMessage, isSending, sendError, typingUsers,
+      updateTypingUser, clearTypingUsers, isAiThinking, aiThinkingUser,
+      setIsAiThinking, handleSend, handleSendVoiceMessage, editingMessage, startEditMessage,
+      cancelEditMessage, replyToMessage, startReplyMessage, cancelReplyMessage,
+      handleDelete, handleDeleteMessage, handleTogglePin, handleTogglePinMessage, handleToggleReaction
     }),
     [
-      inputMessage,
-      setInputMessage,
-      handleSend,
-      handleSendVoiceMessage,
-      editingMessage,
-      startEditMessage,
-      cancelEditMessage,
-      replyToMessage,
-      startReplyMessage,
-      cancelReplyMessage,
-      handleSaveEdit,
-      handleDeleteMessage,
-      handleTogglePinMessage,
-      handleToggleReaction,
-      isSending,
-      sendError,
-      typingUsers,
-      updateTypingUser,
-      clearTypingUsers,
-      isAiThinking,
-      setIsAiThinking,
+      inputMessage, setInputMessage, isSending, sendError, typingUsers,
+      updateTypingUser, clearTypingUsers, isAiThinking, aiThinkingUser,
+      setIsAiThinking, handleSend, handleSendVoiceMessage, editingMessage, startEditMessage,
+      cancelEditMessage, replyToMessage, startReplyMessage, cancelReplyMessage,
+      handleDelete, handleDeleteMessage, handleTogglePin, handleTogglePinMessage, handleToggleReaction
     ]
   );
 
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+  return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>;
 };
 
 export const useChat = () => {
