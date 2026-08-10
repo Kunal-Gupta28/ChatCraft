@@ -183,7 +183,13 @@ const ChatInput = () => {
         </div>
       )}
 
-      {sendError && <div className="mt-1 text-[10px] font-mono text-red-400 px-1">{sendError}</div>}
+      {sendError && (
+        <div className="mt-1 text-[10px] font-mono text-red-400 px-1 truncate" title={sendError}>
+          {sendError.includes("http") || sendError.includes("GoogleGenerativeAI")
+            ? "⚠️ AI service is busy or quota limited. Please try again shortly."
+            : sendError}
+        </div>
+      )}
       {audioError && <div className="mt-1 text-[10px] font-mono text-red-400 px-1">{audioError}</div>}
     </div>
   );

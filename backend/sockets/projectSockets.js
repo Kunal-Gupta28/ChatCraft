@@ -108,51 +108,70 @@ const setupProjectSockets = (io) => {
             isThinking: true,
           });
 
-          const aiResponseText = await generateResult(messageText, socket.project.fileTree);
-
-          let savedAiMessage;
-          let parsedResponsePayload = null;
-
           try {
-            parsedResponsePayload = JSON.parse(aiResponseText);
-            const explanation = parsedResponsePayload.explanation || "AI generated the requested file tree changes.";
+            const aiResult = await generateResult(messageText, socket.project.fileTree);
 
-            savedAiMessage = await saveMessage({
+            let responseText = "AI generated response.";
+            let codeSuggestionPayload = null;
+
+            if (typeof aiResult === "object" && aiResult !== null) {
+              responseText = aiResult.text || aiResult.explanation || "AI generated the requested file changes.";
+              if (aiResult.fileTree) {
+                codeSuggestionPayload = aiResult;
+              }
+            } else if (typeof aiResult === "string") {
+              responseText = aiResult;
+            }
+
+            const savedAiMessage = await saveMessage({
               projectId: socket.project._id,
               senderId: null,
               senderName: "Gemini 2.5 AI",
               type: "ai",
-              message: explanation,
-              structuredAiContent: parsedResponsePayload,
+              message: responseText,
+              codeSuggestion: codeSuggestionPayload,
             });
-          } catch {
-            savedAiMessage = await saveMessage({
+
+            io.to(projectRoomId).emit("project-message", savedAiMessage);
+
+            if (codeSuggestionPayload?.fileTree) {
+              const updatedProject = await setFileTree({
+                projectId: socket.project._id,
+                fileTree: codeSuggestionPayload.fileTree,
+                buildCommand: codeSuggestionPayload.buildCommand,
+                startCommand: codeSuggestionPayload.startCommand,
+              });
+
+              socket.project.fileTree = updatedProject.fileTree;
+
+              io.to(projectRoomId).emit("project-files-updated", {
+                fileTree: updatedProject.fileTree,
+                buildCommand: updatedProject.buildCommand,
+                startCommand: updatedProject.startCommand,
+              });
+            }
+          } catch (aiErr) {
+            console.error("AI Generation Exception Caught:", aiErr.message);
+            const errStr = String(aiErr?.message || "").toLowerCase();
+            let friendlyText = "⚠️ Gemini AI encountered an issue processing your request. Please try again.";
+
+            if (errStr.includes("429") || errStr.includes("quota") || errStr.includes("rate limit")) {
+              friendlyText = "⚠️ Gemini AI free quota/rate limit reached. Please wait ~30 seconds and try again.";
+            } else if (errStr.includes("503") || errStr.includes("high demand") || errStr.includes("unavailable")) {
+              friendlyText = "⚠️ Gemini AI is currently experiencing high server traffic. Please try again in a moment.";
+            }
+
+            const savedAiErrorMsg = await saveMessage({
               projectId: socket.project._id,
               senderId: null,
               senderName: "Gemini 2.5 AI",
               type: "ai",
-              message: aiResponseText,
-            });
-          }
-
-          io.to(projectRoomId).emit("project-message", savedAiMessage);
-          io.to(projectRoomId).emit("project-ai-thinking", { isThinking: false });
-
-          if (parsedResponsePayload?.fileTree) {
-            const updatedProject = await setFileTree({
-              projectId: socket.project._id,
-              fileTree: parsedResponsePayload.fileTree,
-              buildCommand: parsedResponsePayload.buildCommand,
-              startCommand: parsedResponsePayload.startCommand,
+              message: friendlyText,
             });
 
-            socket.project.fileTree = updatedProject.fileTree;
-
-            io.to(projectRoomId).emit("project-files-updated", {
-              fileTree: updatedProject.fileTree,
-              buildCommand: updatedProject.buildCommand,
-              startCommand: updatedProject.startCommand,
-            });
+            io.to(projectRoomId).emit("project-message", savedAiErrorMsg);
+          } finally {
+            io.to(projectRoomId).emit("project-ai-thinking", { isThinking: false });
           }
         }
       } catch (error) {

@@ -80,13 +80,17 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
-  // Auto-clear AI indicator when any new message arrives
+  // Auto-clear AI indicator when AI message arrives
   useEffect(() => {
     if (messages.length > prevMsgLengthRef.current) {
       prevMsgLengthRef.current = messages.length;
-      clearAiThinking();
+      const lastMsg = messages[messages.length - 1];
+      const isAiMsg = lastMsg?.type === "ai" || lastMsg?.senderName?.includes("AI") || lastMsg?.senderName?.includes("Gemini");
+      if (isAiMsg) {
+        clearAiThinking();
+      }
     }
-  }, [messages.length, clearAiThinking]);
+  }, [messages, clearAiThinking]);
 
   const setIsAiThinking = useCallback((val) => {
     if (val) {

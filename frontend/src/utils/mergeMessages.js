@@ -1,3 +1,17 @@
+const extractId = (m) => {
+  if (!m) return "";
+  if (typeof m._id === "string") return m._id;
+  if (m._id && typeof m._id === "object") {
+    if (m._id._id) return String(m._id._id);
+    if (typeof m._id.toString === "function") return m._id.toString();
+  }
+  if (typeof m.id === "string") return m.id;
+  if (m.id && typeof m.id === "object") {
+    if (typeof m.id.toString === "function") return m.id.toString();
+  }
+  return "";
+};
+
 export const mergeMessages = (current = [], incoming = []) => {
   const merged = new Map();
 
@@ -10,9 +24,9 @@ export const mergeMessages = (current = [], incoming = []) => {
       message = { ...rawMessage };
     }
 
-    const idKey = message._id || message.id;
+    const idKey = extractId(message);
     const key = idKey
-      ? String(idKey)
+      ? idKey
       : `${message.senderId || message.senderName}-${new Date(message.createdAt || 0).getTime()}`;
 
     if (merged.has(key)) {

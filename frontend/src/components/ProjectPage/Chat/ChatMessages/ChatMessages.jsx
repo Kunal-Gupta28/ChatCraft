@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Bot, Sparkles, MessageSquareCode, Loader2 } from "lucide-react";
+import { MessageSquareCode, Loader2 } from "lucide-react";
 import ChatMessageBubble from "../ChatMessageBubble";
 import { useUser } from "../../../../contexts/user.context";
 import { useMessages } from "../../../../contexts/Messages.context";
@@ -73,10 +73,11 @@ const ChatMessages = ({ chatEndRef, searchQuery = "", searchFilter = "all" }) =>
     setIsSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await axiosInstance.get("/messages/search", {
+        const response = await axiosInstance.get(`/project/messages/${projectId}`, {
           params: {
-            projectId,
-            query: searchQuery,
+            page: 1,
+            limit: 50,
+            search: searchQuery,
             filter: searchFilter,
           },
         });
@@ -165,7 +166,7 @@ const ChatMessages = ({ chatEndRef, searchQuery = "", searchFilter = "all" }) =>
     const nextPage = page + 1;
 
     try {
-      const response = await axiosInstance.get(`/messages/${projectId}`, {
+      const response = await axiosInstance.get(`/project/messages/${projectId}`, {
         params: { page: nextPage, limit: 30 },
       });
 

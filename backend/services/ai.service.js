@@ -26,11 +26,10 @@ const cleanJsonText = (rawText) => {
 // get result from gemini with automatic model fallback
 const generateResult = async (prompt, currentFileTree) => {
   const modelNames = [
-    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
   ];
 
   let lastError = null;
@@ -90,16 +89,15 @@ Rules:
     }
   }
 
-  throw new Error(`Gemini API Error: ${lastError?.message || "Failed to generate AI response"}`);
+  throw new Error(lastError?.message || "Failed to generate AI response");
 };
 
 const generateAudioResult = async ({ audioBase64, mimeType, currentFileTree }) => {
   const modelNames = [
-    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
   ];
 
   let lastError = null;
@@ -145,7 +143,7 @@ Rules:
     }
   }
 
-  throw new Error(`Gemini Audio API Error: ${lastError?.message || "Failed to process audio command"}`);
+  throw new Error(lastError?.message || "Failed to process audio command");
 };
 
 module.exports = { generateResult, generateAudioResult };

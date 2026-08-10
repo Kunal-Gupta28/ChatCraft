@@ -142,7 +142,8 @@ const Project = () => {
     const cleanups = [
       receiveMessage("project-message", (message) => {
         setMessages((current) => mergeMessages(current, [message]));
-        if (typeof setIsAiThinking === "function") {
+        const isAi = message?.type === "ai" || message?.senderName?.includes("AI") || message?.senderName?.includes("Gemini");
+        if (isAi && typeof setIsAiThinking === "function") {
           setIsAiThinking(false);
         }
       }),
