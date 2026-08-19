@@ -16,17 +16,22 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
-              return "vendor-react";
-            }
-            if (id.includes("monaco-editor") || id.includes("@monaco-editor")) {
-              return "vendor-monaco";
-            }
-            if (id.includes("lucide-react")) {
+            if (id.includes("/node_modules/lucide-react/")) {
               return "vendor-icons";
             }
-            if (id.includes("framer-motion")) {
+            if (id.includes("/node_modules/monaco-editor/") || id.includes("/node_modules/@monaco-editor/")) {
+              return "vendor-monaco";
+            }
+            if (id.includes("/node_modules/framer-motion/")) {
               return "vendor-animation";
+            }
+            if (
+              id.includes("/node_modules/react/") ||
+              id.includes("/node_modules/react-dom/") ||
+              id.includes("/node_modules/react-router/") ||
+              id.includes("/node_modules/react-router-dom/")
+            ) {
+              return "vendor-react";
             }
             return "vendor-libs";
           }
