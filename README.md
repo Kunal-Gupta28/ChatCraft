@@ -1,6 +1,6 @@
 <div align="center">
 
-  <h1>🚀 ChatCraft</h1>
+  <h1> ChatCraft</h1>
   <p><b>Real-Time Collaborative Cloud IDE & AI-Assisted Development Workspace</b></p>
 
   <p>
@@ -16,30 +16,30 @@
 
 ---
 
-## 📌 Overview
+##  Overview
 
 **ChatCraft** is a full-stack, real-time collaborative coding platform and cloud IDE built with the **MERN stack**. It empowers teams and developers to build, review, transpile, and execute code directly in the browser with zero server compilation overhead, while leveraging an integrated **Google Gemini AI Assistant (`@ai`)** for on-demand code generation and refactoring.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-- ⚡ **Live Real-Time Collaboration**: Multi-user project rooms with synchronized file editing, cursor presence, and instant chat powered by **Socket.IO**.
-- 💻 **Monaco Code Editor**: Full-featured VS Code editing experience with syntax highlighting, auto-completion, and multi-tab workspace management.
-- 🌐 **Dual In-Browser Execution Engines**:
+-  **Live Real-Time Collaboration**: Multi-user project rooms with synchronized file editing, cursor presence, and instant chat powered by **Socket.IO**.
+-  **Monaco Code Editor**: Full-featured VS Code editing experience with syntax highlighting, auto-completion, and multi-tab workspace management.
+-  **Dual In-Browser Execution Engines**:
   - **Chromium / Firefox Engine**: Native StackBlitz WebContainers (`@webcontainer/api`) WASM engine for in-browser Node.js runtime and live server execution.
   - **Safari & Mobile Live Fallback Engine**: CommonJS `require()` polyfill with `@babel/standalone` in-browser transpilation and static asset inlining for 100% parity across iOS and Safari.
-- 🤖 **Integrated Gemini AI Assistant**: Context-aware `@ai` assistant directly inside project chat capable of code explanation, bug fixing, and boilerplate generation.
-- 💬 **Interactive Chat & Mentions**:
-  - Reaction bars (`👍`, `❤️`, `🔥`, `🚀`) with hover micro-interactions.
+-  **Integrated Gemini AI Assistant**: Context-aware `@ai` assistant directly inside project chat capable of code explanation, bug fixing, and boilerplate generation.
+-  **Interactive Chat & Mentions**:
+  - Reaction bars (``, ``, ``, ``) with hover micro-interactions.
   - Interactive `@mention` auto-complete and mention navigation counter.
   - In-place message editing, replies, and audio recording clips.
-- 📁 **Dynamic File Explorer**: Minimalist file tree with extension-specific Lucide icons, custom folder color-coding, and collapsible panels.
-- 🔐 **Secure Authentication**: JWT-based session security with Redis token blacklisting for safe invalidation on logout.
+-  **Dynamic File Explorer**: Minimalist file tree with extension-specific Lucide icons, custom folder color-coding, and collapsible panels.
+-  **Secure Authentication**: JWT-based session security with Redis token blacklisting for safe invalidation on logout.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+##  Architecture & Tech Stack
 
 ```mermaid
 graph TD
@@ -65,7 +65,7 @@ graph TD
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```text
 ChatCraft/
@@ -92,7 +92,7 @@ ChatCraft/
 
 ---
 
-## 🚀 Quickstart & Local Setup
+##  Quickstart & Local Setup
 
 ### 1. Prerequisites
 - **Node.js**: v18.0 or higher
@@ -145,13 +145,13 @@ Open **[http://localhost:5173](http://localhost:5173)** in your browser.
 
 ---
 
-## 🌐 Live Deployment
+##  Live Deployment
 
 * **Live Demo**: [https://chat-craft-xi.vercel.app](https://chat-craft-xi.vercel.app)
 
 ---
 
-## 👤 Author
+##  Author
 
 **Kunal Gupta**
 * Website: [Portfolio](https://portfolio-website-chi-gilt.vercel.app)
